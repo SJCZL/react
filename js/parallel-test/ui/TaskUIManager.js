@@ -47,7 +47,7 @@ export class TaskUIManager {
             this.setupTaskEventHandlers();
         }
         
-        // Get chat system prompt from main chat
+        // Get chat system prompt from main chat (will be empty if not set, which is correct)
         this.updateChatSystemPrompt();
         
         // Set up observer to sync with main chat system prompt changes
@@ -264,16 +264,31 @@ export class TaskUIManager {
                     }
                 }
             });
-            
+
             observer.observe(chatContainer, { childList: true, subtree: true });
         }
-        
+
         // Set up listener for parallel test tab system prompt changes
         document.addEventListener('input', (e) => {
             if (e.target.id === 'pt-chat-system-prompt') {
                 this.updateChatSystemPrompt();
             }
         });
+
+        // Set up listener for scene config generated prompt changes
+        const scenePromptEl = document.getElementById('generated-prompt');
+        if (scenePromptEl) {
+            scenePromptEl.addEventListener('input', () => {
+                console.log('[TaskUIManager] Scene config prompt changed, updating...');
+                this.updateChatSystemPrompt();
+            });
+
+            // Also listen for custom events when scene config generates prompt
+            document.addEventListener('scenePromptGenerated', () => {
+                console.log('[TaskUIManager] Scene prompt generated event received');
+                this.updateChatSystemPrompt();
+            });
+        }
     }
 
     updateChatSystemPrompt() {
@@ -286,6 +301,14 @@ export class TaskUIManager {
             if (promptEl) {
                 this.chatSystemPrompt = promptEl.value;
             }
+        }
+
+        // Also check for scene config generated prompt
+        const scenePromptEl = document.getElementById('generated-prompt');
+        if (scenePromptEl && scenePromptEl.value && scenePromptEl.value.trim()) {
+            // If scene config has a generated prompt and it's not empty, use it
+            console.log('[TaskUIManager] Found generated prompt from scene config');
+            this.chatSystemPrompt = scenePromptEl.value.trim();
         }
     }
 
@@ -362,7 +385,7 @@ export class TaskUIManager {
                             ? preset.basic?.endCondition?.rounds
                             : preset.basic?.endCondition?.[preset.basic?.endCondition?.type + 'Regex'] || '<\\?END_CHAT>'
                     },
-                    modelName: preset.dialogue?.model || modelConfig.currentModel, // 使用模型配置系统中的当前模型
+                    modelName: preset.dialogue?.model || modelConfig.currentModel, // 使用并行测试中选择的模型或全局模型配置
                     temperature: preset.dialogue?.temperature || 0.97, // This is for the assistant
                     topP: preset.dialogue?.top_p || 0.3 // This is for the assistant
                 },

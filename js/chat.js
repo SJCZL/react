@@ -4,8 +4,9 @@ import { DEFAULT_INITIAL_RESPONSE, DEFAULT_RESPONSE_PROMPT, MODEL_NAME } from '.
 
 export class Chat {
     constructor(options) {
-        this.chatService = new ChatService(options.apiKey, options.modelName || null);
+        this.chatService = new ChatService(options.apiKey, options.modelName || null, options.modelConfig || null);
         this.headless = options.headless || false;
+        this.modelConfig = options.modelConfig; // 保存模型配置引用
         this.uiManager = null;
  
         if (!this.headless) {
@@ -116,17 +117,23 @@ export class Chat {
  
         // 模型参数现在由模型配置面板统一管理
         // 这里不再直接绑定侧边栏输入框，而是通过模型配置系统同步
- 
+
         // 模型参数现在由模型配置面板统一管理
         // 初始化时使用传入的参数值
         console.log(`[Chat] Initialized with model: ${this.chatService.apiService.modelName}`);
         console.log(`[Chat] Initialized with temperature: ${this.defaultTemperature}`);
         console.log(`[Chat] Initialized with topP: ${this.defaultTopP}`);
- 
+
         this.initializeConversation();
-        
+
         // Initialize analysis system
         this.initializeAnalysis();
+
+        // Initialize model selection UI
+        this.initializeModelSelectionUI();
+
+        // Initialize custom select functionality
+        this.initializeCustomSelects();
     }
 
 
@@ -221,15 +228,15 @@ export class Chat {
      */
     initializeAnalysis() {
         if (!this.uiManager || !this.uiManager.selectionManager) return;
-        
+
         const apiKey = this.chatService.apiService.apiKey;
         const config = this.getAnalysisConfig();
-        
+
         this.uiManager.selectionManager.initializeAnalysis(apiKey, config);
-        
+
         // Set up configuration change listeners
         this.setupAnalysisConfigListeners();
-        
+
         console.log('[Chat] Analysis system initialized');
     }
     
@@ -404,6 +411,13 @@ export class Chat {
             const currentProvider = window.modelConfig?.getCurrentProvider();
             const providerName = currentProvider?.name || '所选服务商';
             alert(`请先配置 ${providerName} 的API密钥。\n\n💡 提示：点击右上角的"⚙️ 模型设置"按钮进行配置。`);
+            return;
+        }
+
+        // 检查系统提示词是否为空
+        const systemPrompt = this.chatService.getSystemPrompt();
+        if (!systemPrompt || systemPrompt.trim() === '') {
+            alert('请先设置系统提示词。\n\n💡 提示：\n1. 点击"场景配置"标签页\n2. 使用YAML编辑器配置场景\n3. 点击"生成系统提示"按钮\n4. 点击"应用到主对话"按钮');
             return;
         }
 
@@ -878,18 +892,361 @@ export class Chat {
             if (messageIndex > -1 && conversation[messageIndex].role === 'user') {
                 conversation.splice(messageIndex + 1);
                 this.chatService.setConversation(conversation);
-                
+
                 // Clear selection before regen
                 this.uiManager.selectionManager.deselectAll();
-                
+
                 this.renderMessages();
                 this.uiManager.selectionManager.updateDebugOverlay();
                 await this.fetchBotResponse(signal);
             }
         });
-        
+
         if (!success) {
             console.log('Regen response operation was aborted or failed');
         }
+    }
+
+    /**
+     * 初始化模型选择UI
+     */
+    initializeModelSelectionUI() {
+        if (this.headless || !this.modelConfig) return;
+
+        // 获取UI元素
+        const chatProviderSelect = document.getElementById('chat-provider-select');
+        const chatModelSelect = document.getElementById('chat-model-select');
+        const psychologyModelSelect = document.getElementById('psychology-model-select');
+        const qualityModelSelect = document.getElementById('quality-model-select');
+        const salesModelSelect = document.getElementById('sales-model-select');
+
+        if (!chatProviderSelect || !chatModelSelect) return;
+
+        // 填充服务商选项
+        this.populateProviderOptions();
+
+        // 填充模型选项
+        this.populateModelOptions();
+
+        // 填充分析模型选项
+        this.populateAnalysisModelOptions();
+
+        // 绑定事件监听器
+        this.setupModelSelectionEventListeners();
+
+        // 更新当前模型显示
+        this.updateCurrentModelDisplay();
+    }
+
+    /**
+     * 填充服务商选项
+     */
+    populateProviderOptions() {
+        const chatProviderSelect = document.getElementById('chat-provider-select');
+        if (!chatProviderSelect || !this.modelConfig) return;
+
+        const providers = this.modelConfig.getProviders();
+        const currentProvider = this.modelConfig.getCurrentProvider();
+
+        // 清空现有选项
+        chatProviderSelect.innerHTML = '';
+
+        providers.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider.id;
+            option.textContent = provider.name;
+            if (provider.id === this.modelConfig.currentProvider) {
+                option.selected = true;
+            }
+            chatProviderSelect.appendChild(option);
+
+            // 同时为自定义选择器添加选项
+            const customOption = document.createElement('span');
+            customOption.className = 'custom-option';
+            customOption.dataset.value = provider.id;
+            customOption.textContent = provider.name;
+            if (provider.id === this.modelConfig.currentProvider) {
+                customOption.classList.add('selected');
+            }
+
+            const customOptions = chatProviderSelect.parentElement.querySelector('.custom-options');
+            if (customOptions) {
+                customOptions.appendChild(customOption);
+            }
+        });
+
+        // 更新自定义选择器UI
+        this.updateCustomSelectUI('chat-provider-select', currentProvider ? currentProvider.name : '选择服务商');
+    }
+
+    /**
+     * 填充模型选项
+     */
+    populateModelOptions() {
+        const chatModelSelect = document.getElementById('chat-model-select');
+        if (!chatModelSelect || !this.modelConfig) return;
+
+        const models = this.modelConfig.getProviderModels();
+        const currentModel = this.modelConfig.getCurrentModel();
+
+        // 清空现有选项
+        chatModelSelect.innerHTML = '';
+
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            if (model.id === this.modelConfig.currentModel) {
+                option.selected = true;
+            }
+            chatModelSelect.appendChild(option);
+
+            // 同时为自定义选择器添加选项
+            const customOption = document.createElement('span');
+            customOption.className = 'custom-option';
+            customOption.dataset.value = model.id;
+            customOption.textContent = model.name;
+            if (model.id === this.modelConfig.currentModel) {
+                customOption.classList.add('selected');
+            }
+
+            const customOptions = chatModelSelect.parentElement.querySelector('.custom-options');
+            if (customOptions) {
+                customOptions.appendChild(customOption);
+            }
+        });
+
+        // 更新自定义选择器UI
+        this.updateCustomSelectUI('chat-model-select', currentModel ? currentModel.name : '选择模型');
+    }
+
+    /**
+     * 填充分析模型选项
+     */
+    populateAnalysisModelOptions() {
+        if (!this.modelConfig) return;
+
+        // 为每种分析类型填充模型选项
+        const analysisTypes = ['psychology', 'quality', 'sales'];
+        analysisTypes.forEach(type => {
+            this.populateSpecificAnalysisModelOptions(type);
+        });
+    }
+
+    /**
+     * 填充特定分析类型的模型选项
+     */
+    populateSpecificAnalysisModelOptions(type) {
+        const selectElement = document.getElementById(`${type}-model-select`);
+        if (!selectElement) return;
+
+        // 这里暂时使用所有可用模型，实际应该从分析配置中获取
+        const models = this.modelConfig.getProviderModels();
+
+        // 清空现有选项
+        selectElement.innerHTML = '';
+
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            selectElement.appendChild(option);
+
+            // 同时为自定义选择器添加选项
+            const customOption = document.createElement('span');
+            customOption.className = 'custom-option';
+            customOption.dataset.value = model.id;
+            customOption.textContent = model.name;
+
+            const customOptions = selectElement.parentElement.querySelector('.custom-options');
+            if (customOptions) {
+                customOptions.appendChild(customOption);
+            }
+        });
+
+        // 设置默认选中项（暂时选择第一个）
+        if (models.length > 0 && !selectElement.value) {
+            selectElement.value = models[0].id;
+        }
+
+        // 更新自定义选择器UI
+        const selectedModel = models.find(m => m.id === selectElement.value);
+        this.updateCustomSelectUI(`${type}-model-select`, selectedModel ? selectedModel.name : '选择模型');
+    }
+
+    /**
+     * 设置模型选择事件监听器
+     */
+    setupModelSelectionEventListeners() {
+        if (!this.modelConfig) return;
+
+        // 对话模型选择事件
+        const chatProviderSelect = document.getElementById('chat-provider-select');
+        const chatModelSelect = document.getElementById('chat-model-select');
+
+        if (chatProviderSelect) {
+            chatProviderSelect.addEventListener('change', (e) => {
+                const providerId = e.target.value;
+                if (this.modelConfig.switchProvider(providerId)) {
+                    this.populateModelOptions();
+                    this.updateChatServiceModel();
+                    this.updateCurrentModelDisplay();
+                }
+            });
+        }
+
+        if (chatModelSelect) {
+            chatModelSelect.addEventListener('change', (e) => {
+                const modelId = e.target.value;
+                if (this.modelConfig.switchModel(modelId)) {
+                    this.updateChatServiceModel();
+                    this.updateCurrentModelDisplay();
+                }
+            });
+        }
+
+        // 分析模型选择事件
+        const analysisTypes = ['psychology', 'quality', 'sales'];
+        analysisTypes.forEach(type => {
+            const selectElement = document.getElementById(`${type}-model-select`);
+            if (selectElement) {
+                selectElement.addEventListener('change', (e) => {
+                    this.updateAnalysisModelConfig(type, e.target.value);
+                });
+            }
+        });
+    }
+
+    /**
+     * 更新聊天服务模型配置
+     */
+    updateChatServiceModel() {
+        if (this.chatService && this.modelConfig) {
+            this.chatService.updateModelConfig(this.modelConfig);
+        }
+    }
+
+    /**
+     * 更新分析模型配置
+     */
+    updateAnalysisModelConfig(type, modelId) {
+        // 更新分析管理器的模型配置
+        if (this.uiManager && this.uiManager.selectionManager) {
+            const config = {};
+            config[`${type}Model`] = modelId;
+            this.uiManager.selectionManager.updateAnalysisConfig(config);
+        }
+    }
+
+    /**
+     * 更新自定义选择器UI显示
+     */
+    updateCustomSelectUI(selectId, displayText) {
+        const customSelect = document.querySelector(`#${selectId} + .custom-select .custom-select-trigger span`);
+        if (customSelect) {
+            customSelect.textContent = displayText;
+        }
+    }
+
+    /**
+     * 更新当前模型显示
+     */
+    updateCurrentModelDisplay() {
+        if (!this.modelConfig) return;
+
+        const currentModel = this.modelConfig.getCurrentModel();
+        const currentProvider = this.modelConfig.getCurrentProvider();
+
+        // 更新对话模型显示
+        const currentChatModelElement = document.getElementById('current-chat-model');
+        if (currentChatModelElement && currentProvider && currentModel) {
+            currentChatModelElement.textContent = `${currentProvider.name} - ${currentModel.name}`;
+        }
+
+        // 更新分析模型显示（暂时显示为默认，后续需要从分析配置中获取实际配置）
+        const analysisModelElements = ['psychology', 'quality', 'sales'].map(type =>
+            document.getElementById(`current-${type}-model`)
+        );
+
+        analysisModelElements.forEach(element => {
+            if (element && currentModel) {
+                element.textContent = currentModel.name;
+            }
+        });
+    }
+
+    /**
+     * 初始化自定义选择器功能
+     */
+    initializeCustomSelects() {
+        if (this.headless) return;
+
+        // 为每个自定义选择器添加事件监听器
+        const customSelects = [
+            'chat-provider-select',
+            'chat-model-select',
+            'psychology-model-select',
+            'quality-model-select',
+            'sales-model-select'
+        ];
+
+        customSelects.forEach(selectId => {
+            this.initializeCustomSelect(selectId);
+        });
+    }
+
+    /**
+     * 初始化单个自定义选择器
+     */
+    initializeCustomSelect(selectId) {
+        const selectElement = document.getElementById(selectId);
+        if (!selectElement) return;
+
+        const customSelect = selectElement.parentElement.querySelector('.custom-select');
+        if (!customSelect) return;
+
+        const selectTrigger = customSelect.querySelector('.custom-select-trigger');
+        const options = customSelect.querySelectorAll('.custom-option');
+
+        // 点击触发器切换选项显示
+        selectTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // 关闭其他所有自定义选择器
+            document.querySelectorAll('.custom-select.open').forEach(cs => {
+                if (cs !== customSelect) cs.classList.remove('open');
+            });
+            // 切换当前选择器
+            customSelect.classList.toggle('open');
+        });
+
+        // 处理选项点击
+        options.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // 更新选中状态
+                customSelect.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+
+                // 更新显示文本
+                selectTrigger.querySelector('span').textContent = option.textContent;
+
+                // 更新隐藏的select元素值
+                selectElement.value = option.dataset.value;
+
+                // 关闭选择器
+                customSelect.classList.remove('open');
+
+                // 触发change事件
+                selectElement.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // 点击外部关闭选择器
+        document.addEventListener('click', (e) => {
+            if (!customSelect.contains(e.target)) {
+                customSelect.classList.remove('open');
+            }
+        });
     }
 }

@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chat = new Chat({
         apiKey: modelConfig.getApiKeyForProvider(modelConfig.currentProvider), // 从模型配置获取当前密钥
         modelName: modelConfig.currentModel, // 使用模型配置系统中的模型
+        modelConfig: modelConfig, // 传递模型配置实例
         defaultTemperature: Number.isFinite(initialTemperature) ? initialTemperature : 0.3,
         defaultTopP: Number.isFinite(initialTopP) ? initialTopP : 0.97,
         headless: false, // This instance controls the UI
@@ -96,6 +97,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make sceneConfigManager globally accessible
     window.sceneConfigManager = sceneConfigManager;
+
+    // 确保场景配置管理器在标签页激活时重新初始化模型选择器
+    const scenarioTabBtn = document.querySelector('.tab-link[data-tab="scenario-tab"]');
+    if (scenarioTabBtn) {
+        scenarioTabBtn.addEventListener('click', () => {
+            // 延迟一点时间确保DOM完全加载
+            setTimeout(() => {
+                if (window.sceneConfigManager) {
+                    window.sceneConfigManager.initializePromptGenerationModelSelector();
+                }
+            }, 300);
+        });
+    }
 
     // API密钥变更监听（现在通过模型配置UI管理）
     // 不再需要直接监听输入框变化，由模型配置系统统一管理

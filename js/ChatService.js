@@ -2,16 +2,52 @@ import { DEFAULT_SYSTEM_PROMPT } from './config.js';
 import { ApiService } from './api.js';
 
 export class ChatService {
-    constructor(apiKey, modelName = null) {
+    constructor(apiKey, modelName = null, modelConfig = null) {
         this.conversation = [];
-        this.systemPrompt = DEFAULT_SYSTEM_PROMPT;
-        this.apiService = new ApiService(apiKey, modelName);
+        // 如果默认系统提示词为空，则设置为空字符串，由场景配置提供
+        this.systemPrompt = DEFAULT_SYSTEM_PROMPT || '';
+        this.apiService = new ApiService(apiKey, modelName, modelConfig);
         this.currentAbortController = null;
+        this.modelConfig = modelConfig; // 保存模型配置引用
+    }
+
+    /**
+     * 更新模型配置
+     */
+    updateModelConfig(modelConfig) {
+        this.modelConfig = modelConfig;
+        if (this.apiService) {
+            this.apiService.updateConfig(modelConfig);
+        }
+    }
+
+    /**
+     * 获取当前模型信息
+     */
+    getCurrentModel() {
+        if (this.modelConfig) {
+            return this.modelConfig.getCurrentModel();
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前提供商信息
+     */
+    getCurrentProvider() {
+        if (this.modelConfig) {
+            return this.modelConfig.getCurrentProvider();
+        }
+        return null;
     }
 
     updateModelName(modelName) {
         if (this.apiService) {
             this.apiService.modelName = modelName;
+        }
+        // 同时更新模型配置
+        if (this.modelConfig) {
+            this.modelConfig.switchModel(modelName);
         }
     }
 

@@ -119,6 +119,42 @@
                     </div>
                 </div>
                 
+                <!-- Model Selection for Chat -->
+                <div class="model-selection-section">
+                    <h3>对话模型选择</h3>
+                    <div class="setting">
+                        <label for="chat-provider-select">服务商</label>
+                        <div class="custom-select-wrapper">
+                            <select id="chat-provider-select" style="display: none;">
+                                <!-- Provider options will be populated by JavaScript -->
+                            </select>
+                            <div class="custom-select">
+                                <div class="custom-select-trigger"><span>选择服务商</span><div class="arrow"></div></div>
+                                <div class="custom-options">
+                                    <!-- Provider options will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <label for="chat-model-select">模型</label>
+                        <div class="custom-select-wrapper">
+                            <select id="chat-model-select" style="display: none;">
+                                <!-- Model options will be populated by JavaScript -->
+                            </select>
+                            <div class="custom-select">
+                                <div class="custom-select-trigger"><span>选择模型</span><div class="arrow"></div></div>
+                                <div class="custom-options">
+                                    <!-- Model options will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="current-model-info">
+                        <small style="color: #666;">当前模型: <span id="current-chat-model">未选择</span></small>
+                    </div>
+                </div>
+
                 <!-- Analysis Configuration -->
                 <div class="analysis-section">
                     <h3>分析设置</h3>
@@ -126,6 +162,61 @@
                         <input type="checkbox" id="auto-analysis-toggle" checked>
                         <label for="auto-analysis-toggle" class="slider"></label>
                         <label for="auto-analysis-toggle">自动生成分析</label>
+                    </div>
+
+                    <!-- Analysis Model Selection -->
+                    <div class="analysis-model-selection">
+                        <h4>分析模型配置</h4>
+                        <div class="setting">
+                            <label for="psychology-model-select">心理学分析模型</label>
+                            <div class="custom-select-wrapper">
+                                <select id="psychology-model-select" style="display: none;">
+                                    <!-- Psychology model options will be populated by JavaScript -->
+                                </select>
+                                <div class="custom-select">
+                                    <div class="custom-select-trigger"><span>选择心理学分析模型</span><div class="arrow"></div></div>
+                                    <div class="custom-options">
+                                        <!-- Psychology model options will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting">
+                            <label for="quality-model-select">质量分析模型</label>
+                            <div class="custom-select-wrapper">
+                                <select id="quality-model-select" style="display: none;">
+                                    <!-- Quality model options will be populated by JavaScript -->
+                                </select>
+                                <div class="custom-select">
+                                    <div class="custom-select-trigger"><span>选择质量分析模型</span><div class="arrow"></div></div>
+                                    <div class="custom-options">
+                                        <!-- Quality model options will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting">
+                            <label for="sales-model-select">销售分析模型</label>
+                            <div class="custom-select-wrapper">
+                                <select id="sales-model-select" style="display: none;">
+                                    <!-- Sales model options will be populated by JavaScript -->
+                                </select>
+                                <div class="custom-select">
+                                    <div class="custom-select-trigger"><span>选择销售分析模型</span><div class="arrow"></div></div>
+                                    <div class="custom-options">
+                                        <!-- Sales model options will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="current-analysis-models">
+                            <small style="color: #666;">
+                                当前分析模型:<br>
+                                心理学: <span id="current-psychology-model">默认</span><br>
+                                质量: <span id="current-quality-model">默认</span><br>
+                                销售: <span id="current-sales-model">默认</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,6 +284,42 @@
                         </div>
                         
                         <div id="llm-config" class="config-panel">
+                            <div class="model-selector-section">
+                                <label>生成模型选择</label>
+                                <div class="model-selector-row">
+                                    <div class="custom-select-wrapper" style="width: 48%;">
+                                        <select id="prompt-gen-provider" style="display:none">
+                                            <!-- Provider options will be populated by JavaScript -->
+                                        </select>
+                                        <div class="custom-select">
+                                            <div class="custom-select-trigger" id="prompt-gen-provider-trigger">
+                                                <span>选择服务商</span>
+                                                <div class="arrow"></div>
+                                            </div>
+                                            <div class="custom-options" id="prompt-gen-provider-options">
+                                                <!-- Provider options will be populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="custom-select-wrapper" style="width: 48%;">
+                                        <select id="prompt-gen-model" style="display:none">
+                                            <!-- Model options will be populated by JavaScript -->
+                                        </select>
+                                        <div class="custom-select">
+                                            <div class="custom-select-trigger" id="prompt-gen-model-trigger">
+                                                <span>选择模型</span>
+                                                <div class="arrow"></div>
+                                            </div>
+                                            <div class="custom-options" id="prompt-gen-model-options">
+                                                <!-- Model options will be populated by JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="current-prompt-model">
+                                    <small>当前模型: <span id="current-prompt-gen-model">未选择</span></small>
+                                </div>
+                            </div>
                             <label for="llm-context">LLM上下文：</label>
                             <textarea id="llm-context" data-snap-id="llm-context" rows="6" placeholder="为LLM提供额外的上下文信息"></textarea>
                             <label for="llm-instruction">生成指令：</label>

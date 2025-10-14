@@ -56,16 +56,45 @@ export class AnalysisManager {
      */
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
-        
-        // Update service configurations
-        this.customerPsychologyService.model = this.config.customerPsychologyModel;
-        this.customerPsychologyService.temperature = this.config.analysisTemperature;
-        
-        this.messageQualityService.model = this.config.messageQualityModel;
-        this.messageQualityService.temperature = this.config.analysisTemperature;
-        
-        this.salesPerformanceService.model = this.config.salesPerformanceModel;
-        this.salesPerformanceService.temperature = this.config.analysisTemperature;
+
+        // Update service configurations if models are provided
+        if (newConfig.customerPsychologyModel) {
+            this.customerPsychologyService.model = newConfig.customerPsychologyModel;
+        }
+        if (newConfig.messageQualityModel) {
+            this.messageQualityService.model = newConfig.messageQualityModel;
+        }
+        if (newConfig.salesPerformanceModel) {
+            this.salesPerformanceService.model = newConfig.salesPerformanceModel;
+        }
+
+        // Update temperature for all services
+        if (newConfig.analysisTemperature !== undefined) {
+            this.customerPsychologyService.temperature = newConfig.analysisTemperature;
+            this.messageQualityService.temperature = newConfig.analysisTemperature;
+            this.salesPerformanceService.temperature = newConfig.analysisTemperature;
+        }
+    }
+
+    /**
+     * Get current model configuration for analysis services
+     */
+    getModelConfig() {
+        return {
+            customerPsychologyModel: this.config.customerPsychologyModel,
+            messageQualityModel: this.config.messageQualityModel,
+            salesPerformanceModel: this.config.salesPerformanceModel,
+            analysisTemperature: this.config.analysisTemperature
+        };
+    }
+
+    /**
+     * Update specific analysis model
+     */
+    updateAnalysisModel(type, modelId) {
+        const config = {};
+        config[`${type}Model`] = modelId;
+        this.updateConfig(config);
     }
 
     /**

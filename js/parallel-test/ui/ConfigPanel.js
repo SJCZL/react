@@ -93,6 +93,33 @@ function mountPanel() {
     if (state.activeTab === 'basic') bindBasicTabEvents();
     if (state.activeTab === 'mistakes') bindMistakesTabEvents();
     // Experts is read-only
+
+    // 使用改进的延时初始化，确保window.modelConfig准备好后再初始化
+    console.log('[ConfigPanel] Scheduling model selector initialization...');
+ 
+    // 多次尝试初始化，确保成功
+    let attempts = 0;
+    const maxAttempts = 5;
+ 
+    function attemptInitialization() {
+      attempts++;
+      console.log(`[ConfigPanel] Initialization attempt ${attempts}/${maxAttempts}`);
+ 
+      if (window.modelConfig && document.getElementById('pt-dialogue-provider')) {
+        console.log('[ConfigPanel] Dependencies ready, initializing...');
+        initializeModelSelectors();
+        return;
+      }
+ 
+      if (attempts < maxAttempts) {
+        setTimeout(attemptInitialization, 150);
+      } else {
+        console.warn('[ConfigPanel] Max initialization attempts reached, will retry on tab activation');
+      }
+    }
+ 
+    // 立即开始第一次尝试
+    setTimeout(attemptInitialization, 50);
   }
 }
 
@@ -188,8 +215,32 @@ function renderBasicTab() {
         <h4 class="pt-group-title">评估模型配置</h4>
         <div class="pt-eval-grid">
           <div class="pt-eval-item">
+            <label class="pt-inline-label">服务商</label>
+            <div class="custom-select-wrapper" style="width:100%;">
+              <select id="pt-eval-provider" style="display:none">
+                <!-- Provider options will be populated by JavaScript -->
+              </select>
+              <div class="custom-select">
+                <div class="custom-select-trigger" id="pt-eval-provider-trigger"><span>选择评估服务商</span><div class="arrow"></div></div>
+                <div class="custom-options" id="pt-eval-provider-options">
+                  <!-- Provider options will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pt-eval-item">
             <label class="pt-inline-label">模型</label>
-            <textarea id="pt-eval-model" class="pt-textarea pt-inline">${escapeHtml(evaluation.model ?? '')}</textarea>
+            <div class="custom-select-wrapper" style="width:100%;">
+              <select id="pt-eval-model" style="display:none">
+                <!-- Model options will be populated by JavaScript -->
+              </select>
+              <div class="custom-select">
+                <div class="custom-select-trigger" id="pt-eval-model-trigger"><span>选择评估模型</span><div class="arrow"></div></div>
+                <div class="custom-options" id="pt-eval-model-options">
+                  <!-- Model options will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
           </div>
           <div class="pt-eval-item">
             <label class="pt-inline-label">top-p</label>
@@ -219,8 +270,32 @@ function renderBasicTab() {
         <h4 class="pt-group-title">对话模型配置</h4>
         <div class="pt-eval-grid">
           <div class="pt-eval-item">
+            <label class="pt-inline-label">服务商</label>
+            <div class="custom-select-wrapper" style="width:100%;">
+              <select id="pt-dialogue-provider" style="display:none">
+                <!-- Provider options will be populated by JavaScript -->
+              </select>
+              <div class="custom-select">
+                <div class="custom-select-trigger" id="pt-dialogue-provider-trigger"><span>选择对话服务商</span><div class="arrow"></div></div>
+                <div class="custom-options" id="pt-dialogue-provider-options">
+                  <!-- Provider options will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pt-eval-item">
             <label class="pt-inline-label">模型</label>
-            <textarea id="pt-dialogue-model" data-snap-id="pt-dialogue-model" class="pt-textarea pt-inline">${escapeHtml(dialogue.model ?? '')}</textarea>
+            <div class="custom-select-wrapper" style="width:100%;">
+              <select id="pt-dialogue-model" data-snap-id="pt-dialogue-model" style="display:none">
+                <!-- Model options will be populated by JavaScript -->
+              </select>
+              <div class="custom-select">
+                <div class="custom-select-trigger" id="pt-dialogue-model-trigger"><span>选择对话模型</span><div class="arrow"></div></div>
+                <div class="custom-options" id="pt-dialogue-model-options">
+                  <!-- Model options will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
           </div>
           <div class="pt-eval-item">
             <label class="pt-inline-label">top-p</label>
@@ -466,9 +541,193 @@ function onTabSwitch(ev) {
   }
 }
 
+function initializeModelSelectors() {
+    // 增加更可靠的等待机制，确保window.modelConfig完全准备好
+    if (!window.modelConfig) {
+        console.warn('[ConfigPanel] Model config not available, retrying...');
+        setTimeout(() => initializeModelSelectors(), 100);
+        return;
+    }
+
+    // 确保DOM元素存在后再初始化
+    const dialogueProviderEl = document.getElementById('pt-dialogue-provider');
+    const dialogueModelEl = document.getElementById('pt-dialogue-model');
+    const evalProviderEl = document.getElementById('pt-eval-provider');
+    const evalModelEl = document.getElementById('pt-eval-model');
+
+    if (!dialogueProviderEl || !dialogueModelEl || !evalProviderEl || !evalModelEl) {
+        console.warn('[ConfigPanel] Model selector elements not found in DOM, retrying...', {
+            dialogueProviderEl: !!dialogueProviderEl,
+            dialogueModelEl: !!dialogueModelEl,
+            evalProviderEl: !!evalProviderEl,
+            evalModelEl: !!evalModelEl
+        });
+        setTimeout(() => initializeModelSelectors(), 100);
+        return;
+    }
+
+    console.log('[ConfigPanel] Initializing model selectors...');
+    console.log('[ConfigPanel] Current provider:', window.modelConfig.getCurrentProvider()?.name);
+    console.log('[ConfigPanel] Current model:', window.modelConfig.getCurrentModel()?.name);
+
+    // 初始化对话模型选择器
+    initializeProviderModelSelectors('dialogue');
+    initializeProviderModelSelectors('eval');
+}
+
+function initializeProviderModelSelectors(type) {
+   const providerSelect = document.getElementById(`pt-${type}-provider`);
+   const modelSelect = document.getElementById(`pt-${type}-model`);
+   const providerTrigger = document.getElementById(`pt-${type}-provider-trigger`);
+   const modelTrigger = document.getElementById(`pt-${type}-model-trigger`);
+
+   if (!providerSelect || !modelSelect || !providerTrigger || !modelTrigger) {
+       console.warn(`[ConfigPanel] Missing elements for ${type} model selectors`);
+       return;
+   }
+
+   console.log(`[ConfigPanel] Initializing ${type} model selectors`);
+
+   // 填充服务商选项
+   populateProviderOptionsForPT(providerSelect, type);
+
+   // 填充模型选项
+   populateModelOptionsForPT(modelSelect, type);
+
+   // 绑定事件 - 使用防重复绑定的方式
+   bindProviderModelEvents(type);
+}
+
+function populateProviderOptionsForPT(selectElement, type) {
+   if (!selectElement || !window.modelConfig) return;
+
+   const providers = window.modelConfig.getProviders();
+   const currentProvider = window.modelConfig.getCurrentProvider();
+
+   // 清空现有选项
+   selectElement.innerHTML = '';
+
+   providers.forEach(provider => {
+     const option = document.createElement('option');
+     option.value = provider.id;
+     option.textContent = provider.name;
+     if (provider.id === window.modelConfig.currentProvider) {
+       option.selected = true;
+     }
+     selectElement.appendChild(option);
+
+     // 添加自定义选择器选项
+     addCustomSelectOption(`pt-${type}-provider-options`, provider.id, provider.name, provider.id === window.modelConfig.currentProvider);
+   });
+
+   // 更新自定义选择器显示
+   updateCustomSelectTrigger(`pt-${type}-provider-trigger`, currentProvider ? currentProvider.name : '选择服务商');
+}
+
+function populateModelOptionsForPT(selectElement, type) {
+   if (!selectElement || !window.modelConfig) return;
+
+   const models = window.modelConfig.getProviderModels();
+   const currentModel = window.modelConfig.getCurrentModel();
+
+   // 清空现有选项
+   selectElement.innerHTML = '';
+
+   models.forEach(model => {
+     const option = document.createElement('option');
+     option.value = model.id;
+     option.textContent = model.name;
+     if (model.id === window.modelConfig.currentModel) {
+       option.selected = true;
+     }
+     selectElement.appendChild(option);
+
+     // 添加自定义选择器选项
+     addCustomSelectOption(`pt-${type}-model-options`, model.id, model.name, model.id === window.modelConfig.currentModel);
+   });
+
+   // 更新自定义选择器显示
+   updateCustomSelectTrigger(`pt-${type}-model-trigger`, currentModel ? currentModel.name : '选择模型');
+}
+
+function addCustomSelectOption(optionsId, value, text, selected = false) {
+   const optionsContainer = document.getElementById(optionsId);
+   if (!optionsContainer) return;
+
+   const option = document.createElement('span');
+   option.className = `custom-option${selected ? ' selected' : ''}`;
+   option.dataset.value = value;
+   option.textContent = text;
+
+   optionsContainer.appendChild(option);
+}
+
+function updateCustomSelectTrigger(triggerId, text) {
+   const trigger = document.getElementById(triggerId);
+   if (trigger) {
+     const span = trigger.querySelector('span');
+     if (span) span.textContent = text;
+   }
+}
+
+function bindProviderModelEvents(type) {
+   const providerSelect = document.getElementById(`pt-${type}-provider`);
+   const modelSelect = document.getElementById(`pt-${type}-model`);
+
+   if (!providerSelect || !modelSelect) return;
+
+   console.log(`[ConfigPanel] Binding ${type} model events`);
+
+   // 清除可能已存在的事件监听器（直接清除）
+   const providerChangeHandler = (e) => {
+     const providerId = e.target.value;
+     console.log(`[ConfigPanel] Provider changed for ${type}: ${providerId}`);
+
+     if (window.modelConfig && window.modelConfig.switchProvider(providerId)) {
+       populateModelOptionsForPT(modelSelect, type);
+       // 更新隐藏的textarea值
+       updateTextareaFromSelect(modelSelect, type);
+     }
+   };
+
+   const modelChangeHandler = (e) => {
+     console.log(`[ConfigPanel] Model changed for ${type}: ${e.target.value}`);
+     // 更新隐藏的textarea值
+     updateTextareaFromSelect(modelSelect, type);
+   };
+
+   // 清除旧的事件监听器
+   providerSelect.removeEventListener('change', providerChangeHandler);
+   modelSelect.removeEventListener('change', modelChangeHandler);
+
+   // 绑定新的事件监听器
+   providerSelect.addEventListener('change', providerChangeHandler);
+   modelSelect.addEventListener('change', modelChangeHandler);
+
+   console.log(`[ConfigPanel] Successfully bound ${type} model events`);
+}
+
+function updateTextareaFromSelect(selectElement, type) {
+   // 查找对应的textarea并更新其值
+   const textarea = document.querySelector(`textarea[data-field="${type}-model"]`);
+   if (textarea && selectElement) {
+     textarea.value = selectElement.value;
+     // 触发input事件以更新状态
+     textarea.dispatchEvent(new Event('input'));
+   }
+
+   // 对于并行测试的模型选择，也需要更新隐藏的textarea元素
+   const ptTextarea = document.getElementById(`pt-${type}-model`);
+   if (ptTextarea && selectElement) {
+     ptTextarea.value = selectElement.value;
+     // 触发input事件以更新ConfigPanel状态
+     ptTextarea.dispatchEvent(new Event('input'));
+   }
+}
+
 function bindBasicTabEvents() {
-  const root = document.getElementById(PANEL_ID);
-  if (!root) return;
+   const root = document.getElementById(PANEL_ID);
+   if (!root) return;
 
   const setVal = (path, value) => {
     // When a temporary preview is active, write into the tempPreset (so UI inputs reflect the preview
@@ -498,8 +757,12 @@ function bindBasicTabEvents() {
   const includeUnlistedEl = root.querySelector('#pt-include-unlisted');
 
   const dialogueModelEl = root.querySelector('#pt-dialogue-model');
+  const dialogueProviderEl = root.querySelector('#pt-dialogue-provider');
   const dialogueTopPEl = root.querySelector('#pt-dialogue-top-p');
   const dialogueTempEl = root.querySelector('#pt-dialogue-temp');
+
+  const evalProviderEl = root.querySelector('#pt-eval-provider');
+  const evalModelEl = root.querySelector('#pt-eval-model');
 
   // Custom select refs for end-type (main chat style)
   const endTypeNative = root.querySelector('#pt-end-type');
@@ -521,8 +784,12 @@ function bindBasicTabEvents() {
   if (includeUnlistedEl) includeUnlistedEl.addEventListener('change', e => setVal('assessmentOptions.includeUnlistedIssues', !!e.target.checked));
 
   if (dialogueModelEl) dialogueModelEl.addEventListener('input', e => setVal('dialogue.model', e.target.value));
+  if (dialogueProviderEl) dialogueProviderEl.addEventListener('change', e => setVal('dialogue.provider', e.target.value));
   if (dialogueTopPEl) dialogueTopPEl.addEventListener('input', e => setVal('dialogue.top_p', e.target.valueAsNumber));
   if (dialogueTempEl) dialogueTempEl.addEventListener('input', e => setVal('dialogue.temperature', e.target.valueAsNumber));
+
+  if (evalProviderEl) evalProviderEl.addEventListener('change', e => setVal('evaluation.provider', e.target.value));
+  if (evalModelEl) evalModelEl.addEventListener('change', e => setVal('evaluation.model', e.target.value));
 
   // Wire custom select (end type) like main chat
   const updateEndTypeUI = (value) => {
@@ -549,6 +816,9 @@ function bindBasicTabEvents() {
     }
   };
 
+  // Wire model selection custom selects
+  setupModelSelectionCustomSelects();
+
   if (endTypeTrigger) {
     endTypeTrigger.addEventListener('click', () => {
       const wrapper = endTypeTrigger.closest('.custom-select');
@@ -573,12 +843,11 @@ function bindBasicTabEvents() {
     }
   });
 
-
-  // Preset buttons
-  const loadBtn = root.querySelector('#pt-preset-load');
-  const exportBtn = root.querySelector('#pt-preset-export');
-  const importBtn = root.querySelector('#pt-preset-import');
-  const importInput = root.querySelector('#pt-preset-import-input');
+  // 添加按钮事件处理
+  const loadBtn = root.querySelector('#pt-load-preset');
+  const exportBtn = root.querySelector('#pt-export-preset');
+  const importBtn = root.querySelector('#pt-import-preset');
+  const importInput = root.querySelector('#pt-import-preset-input');
   const errorsEl = root.querySelector('#pt-basic-errors');
 
   if (loadBtn) {
@@ -638,6 +907,104 @@ function bindBasicTabEvents() {
       reader.readAsText(file, 'utf-8');
     });
   }
+}
+
+function setupModelSelectionCustomSelects() {
+    console.log('[ConfigPanel] Setting up model selection custom selects');
+
+    // 为所有模型选择器设置自定义选择器事件
+    const modelSelectors = [
+      { type: 'dialogue', elements: ['provider', 'model'] },
+      { type: 'eval', elements: ['provider', 'model'] }
+    ];
+
+    modelSelectors.forEach(({ type, elements }) => {
+      elements.forEach(element => {
+        const triggerId = `pt-${type}-${element}-trigger`;
+        const optionsId = `pt-${type}-${element}-options`;
+        const nativeSelectId = `pt-${type}-${element}`;
+
+        console.log(`[ConfigPanel] Setting up custom select for ${triggerId}`);
+        setupCustomSelectForModel(triggerId, optionsId, nativeSelectId, type, element);
+      });
+    });
+
+    // 确保点击外部时关闭所有自定义选择器
+    document.addEventListener('click', (e) => {
+      document.querySelectorAll('.custom-select.open').forEach(select => {
+        if (!select.contains(e.target)) {
+          select.classList.remove('open');
+        }
+      });
+    });
+ }
+
+function setupCustomSelectForModel(triggerId, optionsId, nativeSelectId, type, element) {
+   console.log(`[ConfigPanel] Setting up custom select for ${triggerId}`);
+
+   const trigger = document.getElementById(triggerId);
+   const options = document.getElementById(optionsId);
+   const nativeSelect = document.getElementById(nativeSelectId);
+
+   if (!trigger || !options || !nativeSelect) {
+     console.warn(`[ConfigPanel] Elements not ready for ${triggerId}, will retry...`);
+     setTimeout(() => setupCustomSelectForModel(triggerId, optionsId, nativeSelectId, type, element), 100);
+     return;
+   }
+
+   // 使用最简单的事件绑定方式
+   trigger.onclick = function(e) {
+     e.preventDefault();
+     e.stopPropagation();
+
+     console.log(`[ConfigPanel] ${triggerId} clicked`);
+
+     // 关闭其他选择器
+     document.querySelectorAll('.custom-select.open').forEach(cs => {
+       if (cs !== trigger.closest('.custom-select')) {
+         cs.classList.remove('open');
+       }
+     });
+
+     // 切换当前选择器
+     const customSelect = trigger.closest('.custom-select');
+     if (customSelect) {
+       customSelect.classList.toggle('open');
+     }
+   };
+
+   // 为选项添加点击事件
+   options.onclick = function(e) {
+     e.preventDefault();
+     e.stopPropagation();
+
+     const option = e.target.closest('.custom-option');
+     if (!option) return;
+
+     console.log(`[ConfigPanel] Option selected: ${option.textContent}`);
+
+     // 更新选中状态
+     options.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+     option.classList.add('selected');
+
+     // 更新显示文本
+     const span = trigger.querySelector('span');
+     if (span) span.textContent = option.textContent;
+
+     // 更新隐藏的select元素值
+     nativeSelect.value = option.dataset.value;
+
+     // 关闭选择器
+     const customSelect = trigger.closest('.custom-select');
+     if (customSelect) {
+       customSelect.classList.remove('open');
+     }
+
+     // 触发change事件
+     nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+   };
+
+   console.log(`[ConfigPanel] Successfully set up ${triggerId}`);
 }
 
 function bindMistakesTabEvents() {
@@ -1643,11 +2010,16 @@ async function bootstrap() {
 document.addEventListener('DOMContentLoaded', () => {
   bootstrap();
 
-  // Tab switching integration: on navigating to parallel-tab, ensure layout exists
+  // Tab switching integration: on navigating to parallel-tab, ensure layout exists and reinitialize model selectors
   const parallelTabBtn = document.querySelector('.tab-link[data-tab="parallel-tab"]');
   if (parallelTabBtn) {
     parallelTabBtn.addEventListener('click', () => {
       mountPanel();
+      // 延迟一点时间确保DOM完全加载后重新初始化模型选择器
+      setTimeout(() => {
+        console.log('[ConfigPanel] Reinitializing model selectors for parallel-tab...');
+        initializeModelSelectors();
+      }, 150);
     });
   }
 

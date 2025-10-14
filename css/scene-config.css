@@ -1014,3 +1014,91 @@
         padding: 12px !important;
     }
 }
+
+/* Model Selector Styles for Scene Config */
+.model-selector-section {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.model-selector-section label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 13px;
+}
+
+.model-selector-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.model-selector-row .custom-select-wrapper {
+    flex: 1;
+}
+
+.current-prompt-model {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.current-prompt-model small {
+    font-size: 11px;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+/* Custom select styles for scene config */
+#llm-config .custom-select-wrapper {
+    margin-bottom: 12px;
+}
+
+#llm-config .custom-select {
+    border-radius: 6px;
+}
+
+#llm-config .custom-select-trigger {
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+#llm-config .custom-options {
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#llm-config .custom-option {
+    padding: 10px 12px;
+    font-size: 13px;
+    transition: background-color 0.2s;
+}
+
+#llm-config .custom-option:hover {
+    background-color: #f8f9fa;
+}
+
+#llm-config .custom-option.selected {
+    background-color: #e7f1ff;
+    color: #007bff;
+}
+
+/* Responsive adjustments for model selectors */
+@media (max-width: 768px) {
+    .model-selector-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .model-selector-row .custom-select-wrapper {
+        width: 100%;
+    }
+}

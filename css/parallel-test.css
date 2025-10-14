@@ -2058,3 +2058,35 @@
         transform: translate(-50%, -50%) scale(0.8);
     }
 }
+
+/* Custom select styles for parallel test - MINIMAL FIX ONLY */
+/* 只针对并行测试页面的特定元素，不影响其他页面 */
+#parallel-tab .pt-eval-grid .custom-select-wrapper,
+#parallel-tab .pt-basic-grid .custom-select-wrapper {
+    position: relative;
+    z-index: auto;
+}
+
+#parallel-tab .pt-eval-grid .custom-select,
+#parallel-tab .pt-basic-grid .custom-select {
+    position: relative;
+    z-index: auto;
+}
+
+#parallel-tab .pt-eval-grid .custom-select-trigger,
+#parallel-tab .pt-basic-grid .custom-select-trigger {
+    position: relative;
+    z-index: auto;
+}
+
+#parallel-tab .pt-eval-grid .custom-options,
+#parallel-tab .pt-basic-grid .custom-options {
+    position: absolute;
+    z-index: 1000;
+    display: none;
+}
+
+#parallel-tab .pt-eval-grid .custom-select.open .custom-options,
+#parallel-tab .pt-basic-grid .custom-select.open .custom-options {
+    display: block;
+}

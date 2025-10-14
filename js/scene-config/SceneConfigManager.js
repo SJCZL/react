@@ -39,18 +39,27 @@ export class SceneConfigManager {
         this.templateGenerator = new TemplateSubstitutionGenerator(
             document.getElementById('template-input')?.value || ''
         );
-        
+
         this.llmGenerator = new LLMGenerator(
             this.apiKey,
             document.getElementById('llm-context')?.value || '',
-            document.getElementById('llm-instruction')?.value || ''
+            document.getElementById('llm-instruction')?.value || '',
+            window.modelConfig // 传递模型配置系统
         );
-        
+
+        // 为系统提示词生成添加模型选择UI
+        this.initializePromptGenerationModelSelector();
+
         this.directGenerator = new DirectOutputGenerator(
             document.getElementById('direct-output')?.value || ''
         );
-        
+
         this.currentGenerator = this.templateGenerator;
+
+        // 延迟初始化模型选择器，确保DOM完全准备好
+        setTimeout(() => {
+            this.initializePromptGenerationModelSelector();
+        }, 500);
         
         // Controller used to abort scene-info generation if needed
         this.sceneInfoAbortController = null;
@@ -65,6 +74,9 @@ export class SceneConfigManager {
         this.setupEventListeners();
         this.setupPreviewManager();
         this.updateActiveConfigPanel();
+
+        // 初始化系统提示词生成模型选择器（异步，确保DOM准备好）
+        this.initializePromptGenerationModelSelector();
     }
 
     /**
@@ -309,12 +321,15 @@ export class SceneConfigManager {
         this.previewManager.setOnApplyCallback((prompt) => {
             // Apply the prompt to main chat as before
             this.applyToChat(prompt);
-            
+
             // Additionally, stream-generate 场景信息 into the right-side textarea
             // (do not block the main flow; log any failure)
             this.streamSceneInfoFromSystemPrompt(prompt).catch(err => {
                 console.error('Failed to generate 场景信息:', err);
             });
+
+            // Sync the generated prompt to parallel test config panel
+            this.syncPromptToParallelTest(prompt);
         });
     }
 
@@ -406,10 +421,26 @@ export class SceneConfigManager {
                     this.previewManager.updatePreview(streamedContent);
                 });
                 this.previewManager.updatePreview(prompt);
+
+                // Trigger custom event for parallel test sync
+                const event = new CustomEvent('scenePromptGenerated', {
+                    detail: { prompt: prompt },
+                    bubbles: true
+                });
+                document.dispatchEvent(event);
+                console.log('[SceneConfigManager] Dispatched scenePromptGenerated event');
             } else {
                 // For other generators, use regular generation
                 const prompt = await this.currentGenerator.generate(dataForGenerator);
                 this.previewManager.updatePreview(prompt);
+
+                // Trigger custom event for parallel test sync
+                const event = new CustomEvent('scenePromptGenerated', {
+                    detail: { prompt: prompt },
+                    bubbles: true
+                });
+                document.dispatchEvent(event);
+                console.log('[SceneConfigManager] Dispatched scenePromptGenerated event');
             }
         } catch (error) {
             console.error('[SceneConfigManager] Error generating prompt:', error);
@@ -461,12 +492,12 @@ export class SceneConfigManager {
             // Try to access the main chat instance
             if (window.chatInstance && window.chatInstance.chatService) {
                 window.chatInstance.chatService.setSystemPrompt(prompt);
-                
+
                 // Update the UI to reflect the new system prompt
                 if (window.chatInstance.uiManager) {
                     window.chatInstance.renderMessages(true);
                 }
-                
+
                 this.previewManager.showApplySuccess();
             } else {
                 console.error('Chat instance not found');
@@ -475,6 +506,43 @@ export class SceneConfigManager {
         } catch (error) {
             console.error('Error applying prompt to chat:', error);
             this.previewManager.showApplyError();
+        }
+    }
+
+    /**
+     * Sync the generated prompt to parallel test config panel
+     * @param {string} prompt - The prompt to sync
+     */
+    syncPromptToParallelTest(prompt) {
+        try {
+            console.log('[SceneConfigManager] Syncing prompt to parallel test:', prompt.substring(0, 100) + '...');
+
+            // Update the parallel test chat system prompt textarea
+            const ptChatSystemPromptEl = document.getElementById('pt-chat-system-prompt');
+            if (ptChatSystemPromptEl) {
+                ptChatSystemPromptEl.value = prompt;
+                console.log('[SceneConfigManager] Updated parallel test chat system prompt');
+
+                // Trigger input event to notify ConfigPanel of the change
+                const event = new Event('input', { bubbles: true });
+                ptChatSystemPromptEl.dispatchEvent(event);
+
+                // Also update the global state if ConfigPanel exists
+                if (window.ConfigPanel && window.ConfigPanel.state) {
+                    window.ConfigPanel.state.chatSystemPrompt = prompt;
+                    console.log('[SceneConfigManager] Updated ConfigPanel state');
+                }
+
+                // Update TaskUIManager's chatSystemPrompt if it exists
+                if (window.taskUIManager) {
+                    window.taskUIManager.chatSystemPrompt = prompt;
+                    console.log('[SceneConfigManager] Updated TaskUIManager chatSystemPrompt');
+                }
+            } else {
+                console.warn('[SceneConfigManager] Parallel test chat system prompt element not found');
+            }
+        } catch (error) {
+            console.error('[SceneConfigManager] Error syncing prompt to parallel test:', error);
         }
     }
     
@@ -592,6 +660,335 @@ ${systemPrompt}
             apiKey ? `New key exists (length: ${apiKey.length})` : 'Setting to empty');
         this.apiKey = apiKey;
         this.llmGenerator.apiService.apiKey = apiKey;
+    }
+
+    /**
+     * 初始化系统提示词生成模型选择器
+     */
+    initializePromptGenerationModelSelector() {
+        if (!window.modelConfig) {
+            console.warn('[SceneConfigManager] Model config not available, retrying...');
+            setTimeout(() => this.initializePromptGenerationModelSelector(), 200);
+            return;
+        }
+
+        // 检查DOM元素是否存在
+        const providerSelect = document.getElementById('prompt-gen-provider');
+        const modelSelect = document.getElementById('prompt-gen-model');
+
+        if (!providerSelect || !modelSelect) {
+            console.warn('[SceneConfigManager] Prompt generation model selector elements not found, retrying...');
+            setTimeout(() => this.initializePromptGenerationModelSelector(), 200);
+            return;
+        }
+
+        console.log('[SceneConfigManager] Initializing prompt generation model selectors');
+
+        // 填充选项并绑定事件
+        this.populatePromptGenProviderOptions();
+        this.populatePromptGenModelOptions();
+        this.setupPromptGenModelSelectEvents();
+        this.setupPromptGenCustomSelects();
+    }
+
+    /**
+     * 添加系统提示词生成模型选择UI
+     */
+    addPromptGenerationModelUI() {
+        // 模型选择器已经在HTML中定义，这里只需要确保DOM元素存在
+        const modelSelector = document.getElementById('prompt-gen-model-selector');
+        if (modelSelector) {
+            console.log('[SceneConfigManager] Model selector UI already exists');
+            return;
+        }
+
+        console.log('[SceneConfigManager] Model selector UI not found in DOM');
+    }
+
+    /**
+     * 绑定系统提示词生成模型选择事件
+     */
+    bindPromptGenerationModelEvents() {
+        const providerSelect = document.getElementById('prompt-gen-provider');
+        const modelSelect = document.getElementById('prompt-gen-model');
+
+        if (!providerSelect || !modelSelect) {
+            console.log('[SceneConfigManager] Model select elements not found');
+            return;
+        }
+
+        console.log('[SceneConfigManager] Initializing model selection events');
+
+        // 填充服务商选项
+        this.populatePromptGenProviderOptions();
+
+        // 填充模型选项
+        this.populatePromptGenModelOptions();
+
+        // 绑定事件监听器
+        this.setupPromptGenModelSelectEvents();
+    }
+
+    /**
+     * 填充系统提示词生成服务商选项
+     */
+    populatePromptGenProviderOptions() {
+        const selectElement = document.getElementById('prompt-gen-provider');
+        if (!selectElement || !window.modelConfig) return;
+
+        const providers = window.modelConfig.getProviders();
+        const currentProvider = window.modelConfig.getCurrentProvider();
+
+        // 清空现有选项
+        selectElement.innerHTML = '';
+
+        providers.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider.id;
+            option.textContent = provider.name;
+            if (provider.id === window.modelConfig.currentProvider) {
+                option.selected = true;
+            }
+            selectElement.appendChild(option);
+
+            // 添加自定义选择器选项
+            this.addPromptGenCustomSelectOption('prompt-gen-provider-options', provider.id, provider.name, provider.id === window.modelConfig.currentProvider);
+        });
+
+        // 更新自定义选择器显示
+        this.updatePromptGenCustomSelectTrigger('prompt-gen-provider-trigger', currentProvider ? currentProvider.name : '选择服务商');
+    }
+
+    /**
+     * 填充系统提示词生成模型选项
+     */
+    populatePromptGenModelOptions() {
+        const selectElement = document.getElementById('prompt-gen-model');
+        if (!selectElement || !window.modelConfig) return;
+
+        const models = window.modelConfig.getProviderModels();
+        const currentModel = window.modelConfig.getCurrentModel();
+
+        // 清空现有选项
+        selectElement.innerHTML = '';
+
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            if (model.id === window.modelConfig.currentModel) {
+                option.selected = true;
+            }
+            selectElement.appendChild(option);
+
+            // 添加自定义选择器选项
+            this.addPromptGenCustomSelectOption('prompt-gen-model-options', model.id, model.name, model.id === window.modelConfig.currentModel);
+        });
+
+        // 更新自定义选择器显示
+        this.updatePromptGenCustomSelectTrigger('prompt-gen-model-trigger', currentModel ? currentModel.name : '选择模型');
+
+        // 更新当前模型显示
+        this.updateCurrentPromptGenModelDisplay();
+    }
+
+    /**
+     * 添加系统提示词生成自定义选择器选项
+     */
+    addPromptGenCustomSelectOption(optionsId, value, text, selected = false) {
+        const optionsContainer = document.getElementById(optionsId);
+        if (!optionsContainer) return;
+
+        const option = document.createElement('span');
+        option.className = `custom-option${selected ? ' selected' : ''}`;
+        option.dataset.value = value;
+        option.textContent = text;
+
+        optionsContainer.appendChild(option);
+    }
+
+    /**
+     * 更新系统提示词生成自定义选择器显示
+     */
+    updatePromptGenCustomSelectTrigger(triggerId, text) {
+        const trigger = document.getElementById(triggerId);
+        if (trigger) {
+            const span = trigger.querySelector('span');
+            if (span) span.textContent = text;
+        }
+    }
+
+    /**
+     * 设置系统提示词生成模型选择事件
+     */
+    setupPromptGenModelSelectEvents() {
+        if (!window.modelConfig) return;
+
+        const providerSelect = document.getElementById('prompt-gen-provider');
+        const modelSelect = document.getElementById('prompt-gen-model');
+
+        if (!providerSelect || !modelSelect) {
+            console.warn('[SceneConfigManager] Model select elements not found');
+            return;
+        }
+
+        // 清除可能已存在的事件监听器（使用克隆方式避免重复绑定）
+        const newProviderSelect = providerSelect.cloneNode(true);
+        const newModelSelect = modelSelect.cloneNode(true);
+        providerSelect.parentNode.replaceChild(newProviderSelect, providerSelect);
+        modelSelect.parentNode.replaceChild(newModelSelect, modelSelect);
+
+        console.log('[SceneConfigManager] Setting up prompt generation model events');
+
+        // 绑定服务商选择事件
+        newProviderSelect.addEventListener('change', (e) => {
+            const providerId = e.target.value;
+            console.log(`[SceneConfigManager] Prompt gen provider changed: ${providerId}`);
+
+            if (window.modelConfig.switchProvider(providerId)) {
+                this.populatePromptGenModelOptions();
+                this.updateLLMGeneratorModel();
+            }
+        });
+
+        // 绑定模型选择事件
+        newModelSelect.addEventListener('change', (e) => {
+            console.log(`[SceneConfigManager] Prompt gen model changed: ${e.target.value}`);
+            this.updateLLMGeneratorModel();
+        });
+    }
+
+    /**
+     * 更新LLM生成器的模型配置
+     */
+    updateLLMGeneratorModel() {
+        if (this.llmGenerator && window.modelConfig) {
+            // 更新API服务的模型配置
+            this.llmGenerator.apiService.updateConfig(window.modelConfig);
+            this.updateCurrentPromptGenModelDisplay();
+        }
+    }
+
+    /**
+     * 更新当前系统提示词生成模型显示
+     */
+    updateCurrentPromptGenModelDisplay() {
+        if (!window.modelConfig) return;
+
+        const currentModel = window.modelConfig.getCurrentModel();
+        const currentProvider = window.modelConfig.getCurrentProvider();
+
+        const currentModelElement = document.getElementById('current-prompt-gen-model');
+        if (currentModelElement && currentProvider && currentModel) {
+            currentModelElement.textContent = `${currentProvider.name} - ${currentModel.name}`;
+        }
+    }
+
+    /**
+     * 设置系统提示词生成自定义选择器交互
+     */
+    setupPromptGenCustomSelects() {
+        // 确保DOM元素存在
+        const providerTrigger = document.getElementById('prompt-gen-provider-trigger');
+        const providerOptions = document.getElementById('prompt-gen-provider-options');
+        const modelTrigger = document.getElementById('prompt-gen-model-trigger');
+        const modelOptions = document.getElementById('prompt-gen-model-options');
+
+        if (!providerTrigger || !providerOptions || !modelTrigger || !modelOptions) {
+            console.warn('[SceneConfigManager] Custom select elements not found');
+            return;
+        }
+
+        console.log('[SceneConfigManager] Setting up prompt generation custom selects');
+
+        // 设置服务商选择器
+        this.setupPromptGenCustomSelect('prompt-gen-provider-trigger', 'prompt-gen-provider-options', 'prompt-gen-provider');
+
+        // 设置模型选择器
+        this.setupPromptGenCustomSelect('prompt-gen-model-trigger', 'prompt-gen-model-options', 'prompt-gen-model');
+    }
+
+    /**
+     * 设置单个系统提示词生成自定义选择器
+     */
+    setupPromptGenCustomSelect(triggerId, optionsId, nativeSelectId) {
+        const trigger = document.getElementById(triggerId);
+        const options = document.getElementById(optionsId);
+        const nativeSelect = document.getElementById(nativeSelectId);
+
+        if (!trigger || !options || !nativeSelect) {
+            console.warn(`[SceneConfigManager] Missing elements for ${triggerId}`);
+            return;
+        }
+
+        // 清除可能已存在的事件监听器
+        const newTrigger = trigger.cloneNode(true);
+        const newOptions = options.cloneNode(true);
+        const newNativeSelect = nativeSelect.cloneNode(true);
+
+        trigger.parentNode.replaceChild(newTrigger, trigger);
+        options.parentNode.replaceChild(newOptions, options);
+        nativeSelect.parentNode.replaceChild(newNativeSelect, nativeSelect);
+
+        console.log(`[SceneConfigManager] Setting up custom select for ${triggerId}`);
+
+        // 点击触发器切换选项显示
+        newTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log(`[SceneConfigManager] Trigger clicked: ${triggerId}`);
+
+            // 关闭其他所有自定义选择器
+            document.querySelectorAll('.custom-select.open').forEach(cs => {
+                if (cs !== newTrigger.closest('.custom-select')) cs.classList.remove('open');
+            });
+
+            // 切换当前选择器
+            const customSelect = newTrigger.closest('.custom-select');
+            if (customSelect) {
+                customSelect.classList.toggle('open');
+                console.log(`[SceneConfigManager] Toggled ${triggerId}: ${customSelect.classList.contains('open') ? 'opened' : 'closed'}`);
+            }
+        });
+
+        // 处理选项点击
+        newOptions.addEventListener('click', (e) => {
+            const option = e.target.closest('.custom-option');
+            if (!option) return;
+
+            e.stopPropagation();
+            console.log(`[SceneConfigManager] Option clicked: ${option.textContent}`);
+
+            const value = option.dataset.value;
+
+            // 更新选中状态
+            newOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+
+            // 更新显示文本
+            const span = newTrigger.querySelector('span');
+            if (span) span.textContent = option.textContent;
+
+            // 更新隐藏的select元素值
+            newNativeSelect.value = value;
+
+            // 关闭选择器
+            const customSelect = newTrigger.closest('.custom-select');
+            if (customSelect) {
+                customSelect.classList.remove('open');
+                console.log(`[SceneConfigManager] Closed ${triggerId} after selection`);
+            }
+
+            // 触发change事件
+            newNativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // 点击外部关闭选择器
+        document.addEventListener('click', (e) => {
+            const customSelect = newTrigger.closest('.custom-select');
+            if (customSelect && !customSelect.contains(e.target)) {
+                customSelect.classList.remove('open');
+            }
+        });
     }
 
     /**
