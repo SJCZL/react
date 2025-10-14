@@ -1,0 +1,34 @@
+{
+  "name": "Default Preset",
+  "version": "1.0",
+  "basic": {
+    "initialMessage": "喂您好，我是太平洋车险小王。",
+    "autoResponsePrompt": "你是测试用通用销售人员，需要根据上下文判断当前场景和应当销售的产品。你进行的是当面的短对话，一句一句说，输出简练内容。你输出的都是话，没有括号和别的什么花里胡哨的。你看到的所有对方说的话，都是对方说的话。只有你自己的话是你自己的话。",
+    "endCondition": {
+      "type": "assistantRegex",
+      "rounds": 10,
+      "userRegex": "",
+      "assistantRegex": "<\\?END_CHAT>"
+    },
+    "concurrencyLimit": 10
+  },
+  "evaluation": {
+    "model": "qwen3-30b-a3b-thinking-2507",
+    "top_p": 0.97,
+    "temperature": 0.5,
+    "includeSystemPrompt": false
+  },
+  "dialogue": {
+    "model": "qwen-max",
+    "top_p": 0.97,
+    "temperature": 0.3
+  },
+  "assessmentOptions": {
+    "includeUnlistedIssues": true
+  },
+  "experts": [
+    { "specialization": "电影行业", "portfolio": "电影制作和表演", "harshness": 9 },
+    { "specialization": "文学行业", "portfolio": "文学创作和批评", "harshness": 9 },
+    { "specialization": "心理学", "portfolio": "人际沟通和行为分析", "harshness": 6 }
+  ]
+}

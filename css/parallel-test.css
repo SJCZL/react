@@ -1,0 +1,2060 @@
+/* Parallel Test Config Panel - Right 1/3 */
+
+/* CSS variables for mistake colors */
+:root {
+    --mistake-blue-color: #3b82f6;
+    --mistake-yellow-color: #f59e0b;
+    --mistake-red-color: #ef4444;
+    --mistake-grey-color: #6b7280;
+}
+
+/* Ensure parallel tab uses full height and grey background similar to main chat */
+#parallel-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Use full viewport height */
+  max-height: 100vh; /* Prevent exceeding viewport height */
+  background: #f8f8f8; /* same grey as main chat sections */
+  overflow: hidden; /* prevent unwanted scrollbars around container */
+  box-sizing: border-box; /* Include padding in height calculation */
+}
+
+/* Layout for the parallel tab columns */
+#parallel-container {
+  display: flex;
+  gap: 16px; /* bigger gap */
+  align-items: stretch;
+  height: calc(100vh - 50px); /* Account for tab header height */
+  max-height: calc(100vh - 50px); /* Prevent exceeding viewport height */
+  min-height: unset;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent container from scrolling */
+}
+
+.parallel-left-column {
+  flex: 2;
+  background: transparent; /* intentionally blank as per requirements */
+  border: none;
+  min-width: 0; /* prevent horizontal scroll bleed */
+  overflow: hidden; /* Prevent column from scrolling */
+  height: 100%; /* Take full height of container */
+  display: flex;
+  flex-direction: column;
+}
+
+.parallel-right-column {
+  flex: 1;
+  min-width: 340px; /* slightly bigger min */
+  max-width: 560px; /* slightly bigger max */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0; /* allow child to size */
+  overflow: hidden; /* Prevent column from scrolling */
+}
+
+/* Panel container */
+.pt-panel {
+  display: flex;
+  flex-direction: column;
+  height: 94%;
+  max-height: 100%; /* Prevent exceeding parent height */
+  border: 1px solid #e5e7eb;
+  border-radius: 20px; /* much rounder edges for modern look */
+  background: #f8f8f8; /* grey background like main chat sections */
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  overflow: hidden;
+  color: #111827;
+  font-size: 15px; /* bigger font */
+  /* Prevent flex shrink */
+  flex-shrink: 0;
+  margin-top: 20px;
+  margin-right: 20px;
+}
+
+/* Temporary preview active indicator (clean full-border gradient + glow)
+   When a temp preset is shown, the entire panel is wrapped with a
+   subtle gradient border and soft glow to indicate "preview mode".
+*/
+.pt-panel.pt-temp-active {
+  position: relative;
+  /* stronger soft glow to make it distinct yet tasteful */
+  box-shadow: 0 10px 30px rgba(106,27,154,0.06);
+  z-index: 1;
+}
+
+/* Gradient border overlay - placed outside the panel but visible around it */
+.pt-panel.pt-temp-active::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 24px;
+  background: linear-gradient(90deg, rgba(106,27,154,0.95) 0%, rgba(181,125,224,0.9) 50%, rgba(106,27,154,0.95) 100%);
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-filter: blur(6px);
+          filter: blur(6px);
+}
+
+/* Inner crisp border line to reinforce the indicator (subtle) */
+.pt-panel.pt-temp-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 20px;
+  padding: 2px;
+  box-sizing: border-box;
+  background: linear-gradient(90deg, rgba(106,27,154,0.6), rgba(181,125,224,0.6));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Highlight the source task bubble (the task that provided the temp preset)
+   Note: visual highlight kept but explicit badge label removed per feedback.
+*/
+.task-bubble.task-temp-source {
+  box-shadow: 0 6px 18px rgba(106,27,154,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  border-color: rgba(106,27,154,0.5);
+  transform: translateY(-2px);
+  transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
+  position: relative;
+  z-index: 2;
+}
+
+/* Remove the textual badge while retaining subtle visual highlight.
+   (Empty pseudo-element to avoid layout shifts from previous rules.)
+*/
+.task-bubble.task-temp-source::before {
+  content: '';
+  display: none;
+}
+
+/* Subsections for Basic tab to improve structure */
+.pt-subsection {
+  background: #ffffff; /* white card on grey panel */
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.pt-subsection.alt {
+  background: #fbfbfb; /* subtle grey variant */
+}
+
+.pt-subsection + .pt-subsection {
+  margin-top: 16px;
+}
+
+/* Header inside subsection */
+.pt-subsection .pt-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  border-bottom: 1px dashed #e5e7eb;
+  padding-bottom: 8px;
+}
+
+/* Tabs */
+.pt-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f0f0f0;
+}
+
+.pt-tab {
+  flex: 1;
+  padding: 12px 16px; /* bigger padding */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: #6b7280;
+  transition: background 0.2s ease, color 0.2s ease;
+  position: relative;
+}
+.pt-tab:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.pt-tab.active {
+  background: #ffffff;
+  color: #111827;
+}
+
+/* Content area */
+.pt-content {
+  padding: 0; /* remove padding as it's now handled by inner content */
+  overflow: hidden; /* hide overflow for clean sliding */
+  flex: 1 1 auto;
+  min-height: 0; /* allow flex scrolling */
+  max-height: 100%; /* Don't exceed parent height */
+  background: #fff; /* card-like inside the grey panel */
+  border-top: 1px solid #e5e7eb;
+  position: relative;
+}
+
+/* Tab content wrapper */
+.pt-tab-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%; /* Don't exceed parent height */
+  padding: 20px;
+  overflow-y: auto; /* Only this container should scroll */
+  overflow-x: hidden;
+  box-sizing: border-box;
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  /* Prevent scrolling from propagating to parent elements */
+  -ms-scroll-chaining: none;
+      overscroll-behavior: contain;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.pt-tab-content::-webkit-scrollbar {
+  display: none;
+}
+
+.pt-tab-content.active {
+  display: block;
+}
+
+.pt-tab-content.hidden {
+  display: none;
+}
+
+/* Sections, labels, inputs */
+.pt-section {
+  margin-bottom: 18px; /* bigger spacing */
+}
+
+/* Make “结束条件与并发” group single column explicitly */
+.pt-group-singlecol .pt-basic-grid,
+.pt-group-singlecol .pt-eval-grid {
+  grid-template-columns: 1fr !important;
+}
+
+/* Make “结束条件与并发” group single column explicitly */
+.pt-group-singlecol .pt-basic-grid,
+.pt-group-singlecol .pt-eval-grid {
+  grid-template-columns: 1fr !important;
+}
+.pt-section > label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+/* Basic tab structured groups */
+.pt-basic-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card-like group containers with unified subtle greyness */
+.pt-basic-group {
+  background: #fbfbfb; /* unified grey for all groups */
+  border: 1px solid #e6e6e6;
+  border-radius: 16px; /* rounder edges to match panel */
+  padding: 16px;
+}
+.pt-basic-group.alt {
+  background: #fbfbfb; /* same as default */
+}
+
+/* Group header */
+.pt-basic-group .pt-group-title {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  border-bottom: 1px dashed #e5e7eb;
+  padding-bottom: 8px;
+}
+
+/* Two-row grid layout for Basic tab groups */
+.pt-basic-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* default to single column for easier stacking */
+  gap: 16px 20px; /* row-gap col-gap */
+  align-items: start;
+}
+/* Only switch to two columns on very wide screens */
+@media (min-width: 1700px) {
+  .pt-basic-grid {
+    grid-template-columns: 1fr 1fr; /* two columns for very wide screens */
+  }
+}
+
+/* Only switch to two columns on very wide screens */
+@media (min-width: 1280px) {
+  .pt-basic-grid {
+    grid-template-columns: 1fr 1fr; /* two columns for very wide screens */
+  }
+}
+
+/* Dedicated grid for evaluation config to force side-by-side fields */
+.pt-eval-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* default single column */
+  gap: 12px 20px;
+  align-items: start;
+}
+/* Switch to two columns only on very wide screens */
+@media (min-width: 1700px) {
+  .pt-eval-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Each eval item row spans one column; labels fixed, inputs flex */
+.pt-eval-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.pt-eval-item .pt-inline-label {
+  min-width: 80px; /* tighter label to fit side-by-side */
+  flex: 0 0 80px;
+}
+.pt-eval-item .pt-input,
+.pt-eval-item .pt-textarea {
+  flex: 1 1 auto;
+}
+
+/* Stack multiple toggles vertically inside one grid column */
+.pt-eval-item.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start; /* align toggles to the left */
+}
+
+/* Ensure toggle internal elements align left consistently */
+.pt-eval-item.toggles .pt-toggle {
+  align-items: center;
+  justify-content: flex-start;
+  width: auto; /* shrink to content */
+}
+.pt-eval-item.toggles .pt-toggle .pt-toggle-label {
+  text-align: left;
+}
+
+@media (max-width: 960px) {
+  .pt-eval-grid {
+    grid-template-columns: 1fr; /* stack on small screens */
+  }
+}
+
+/* Force first three sections to full width (single column span) */
+.pt-basic-grid .pt-full {
+  grid-column: 1 / -1; /* span both columns */
+}
+
+@media (max-width: 960px) {
+  .pt-basic-grid {
+    grid-template-columns: 1fr; /* stack on narrow viewports */
+  }
+  .pt-basic-grid .pt-full {
+    grid-column: auto; /* default when single column */
+  }
+}
+
+/* Cards inside grid should stretch */
+.pt-basic-grid .pt-section {
+  margin-bottom: 0; /* handled by grid gap */
+}
+
+.pt-row {
+  display: flex;
+  gap: 12px; /* bigger gap */
+  align-items: center;
+  margin: 8px 0; /* bigger margin */
+  flex-wrap: wrap; /* avoid horizontal overflow on small widths */
+}
+
+.pt-input, .pt-select, .pt-textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 10px; /* match main/chat rounded */
+  padding: 10px 12px; /* bigger padding */
+  background: #fff;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* Toggle (switch) matching main chat .toggle-switch */
+.pt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pt-toggle input[type="checkbox"] {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+}
+.pt-toggle .slider {
+  cursor: pointer;
+  width: 40px;
+  height: 20px;
+  background-color: #ccc;
+  display: inline-block;
+  border-radius: 20px;
+  position: relative;
+  transition: background-color 0.3s;
+  border: 1px solid #888;
+}
+.pt-toggle .slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+.pt-toggle input:checked + .slider {
+  background-color: #cabad3;
+  border-color: #6a1b9a;
+}
+.pt-toggle input:checked + .slider:before {
+  transform: translateX(20px);
+}
+.pt-toggle label.pt-toggle-label {
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+.pt-input:focus, .pt-select:focus, .pt-textarea:focus {
+  border-color: #6a1b9a; /* accent */
+  box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.15);
+}
+
+.pt-textarea {
+  min-height: 80px; /* slightly larger for comfort */
+  resize: vertical;
+}
+
+/* Higher defaults for 文本与提示 group textareas */
+.pt-basic-group .pt-textarea {
+  min-height: 140px; /* increase default height for readability */
+}
+.pt-textarea.pt-inline {
+  min-height: 40px;
+}
+/* prevent any inline controls from forcing width overflow */
+.pt-inline {
+  max-width: 100%;
+}
+
+/* Inline label for rows */
+.pt-inline-label {
+  min-width: 120px;
+  color: #4b5563;
+  flex: 0 0 auto;
+}
+
+/* Make the three inline inputs for end condition wrap nicely */
+#pt-end-rounds,
+#pt-end-assistant,
+#pt-end-user {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Errors */
+.pt-errors {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  display: none;
+}
+.pt-errors:empty {
+  display: none;
+}
+.pt-errors:not(:empty) {
+  display: block;
+}
+
+/* Blocking error overlay box inside panel */
+.pt-blocking-error {
+  margin: 12px;
+  border: 1px dashed #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 12px;
+}
+.pt-blocking-error-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.pt-blocking-error-actions {
+  margin-top: 8px;
+}
+.pt-blocking-error-actions button {
+  background: #f59e0b;
+  color: #111827;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.pt-blocking-error-actions button:hover {
+  background: #d97706;
+}
+
+/* Preset controls */
+.pt-preset-controls .pt-row {
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Strictly scope pill style to these preset buttons without affecting global defaults */
+#parallel-tab #pt-preset-load,
+#parallel-tab #pt-preset-export,
+#parallel-tab #pt-preset-import {
+  display: inline-block;
+  padding: 10px 20px !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  border: 0.8px solid #6c6c6c !important;
+  border-radius: 20px !important;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+}
+
+#parallel-tab #pt-preset-load:hover,
+#parallel-tab #pt-preset-export:hover,
+#parallel-tab #pt-preset-import:hover {
+  background-color: #eee !important;
+  color: #000 !important;
+  border-color: #000 !important;
+}
+
+/* Accent only the Load button */
+#parallel-tab #pt-preset-load {
+  color: #6a1b9a !important;
+  border-color: #6a1b9a !important;
+}
+#parallel-tab #pt-preset-load:hover {
+  background-color: #f3e5f5 !important;
+  color: #4a148c !important;
+  border-color: #4a148c !important;
+}
+
+/* Toolbar - Redesigned for consistency */
+.pt-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  padding-bottom: 12px;
+  border: 1px solid #aaaaaa;
+  border-radius: 28px;
+  margin-top: 16px;
+}
+
+.pt-btn-primary,
+.pt-btn-secondary {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pt-btn-primary {
+  background-color: #6a1b9a;
+  color: white;
+}
+
+.pt-btn-primary:hover {
+  background-color: #5a1690;
+  box-shadow: 0 4px 8px rgba(106, 27, 154, 0.2);
+}
+
+.pt-btn-secondary {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.pt-btn-secondary:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+/* Style for top 3 buttons in Mistakes tab to match main chat tab style */
+#pt-new-mistake,
+#pt-import-json,
+#pt-export-json {
+  padding: 10px 20px !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  border: 0.8px solid #6c6c6c !important;
+  border-radius: 20px !important;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+#pt-new-mistake:hover,
+#pt-import-json:hover,
+#pt-export-json:hover {
+  background-color: #eee !important;
+  color: #1d1d1d !important;
+  border-color: #2a2a2a !important;
+}
+
+/* Special style for the primary button (新建错误项) */
+#pt-new-mistake {
+  color: #2a2a2a !important;
+  border-color: #989798 !important;
+}
+
+#pt-new-mistake:hover {
+  background-color: #f3e5f5 !important;
+  color: #2a2a2a !important;
+  border-color: #4a148c !important;
+}
+
+/* File input styling */
+.pt-toolbar input[type="file"] {
+  display: none;
+}
+
+/* Mistakes list - Redesigned for consistency and modern look */
+.pt-mistakes-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding: 4px;
+  transition: all 0.3s ease;
+  /* Prevent scrolling from propagating to parent elements */
+  -ms-scroll-chaining: none;
+      overscroll-behavior: contain;
+}
+
+/* Card styling without appear animation */
+.pt-mistake-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Editing mode styles for mistake cards */
+.pt-mistake-card.editing {
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pt-mistake-card.editing .pt-mistake-header {
+  background: #fff;
+}
+
+.pt-mistake-card.editing .pt-mistake-name-input {
+  font-weight: 600;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #111827;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  font-family: inherit;
+  margin-right: 12px;
+}
+
+.pt-mistake-card.editing .pt-mistake-severity-input {
+  font-weight: 600;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #111827;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.pt-mistake-card.editing .pt-mistake-name-input:focus,
+.pt-mistake-card.editing .pt-mistake-severity-input:focus {
+  border-color: #6a1b9a;
+  box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.15);
+}
+
+.pt-mistake-card.editing .pt-mistake-type-input,
+.pt-mistake-card.editing .pt-mistake-desc-input,
+.pt-mistake-card.editing .pt-mistake-examples-input {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #111827;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.pt-mistake-card.editing .pt-mistake-type-input:focus,
+.pt-mistake-card.editing .pt-mistake-desc-input:focus,
+.pt-mistake-card.editing .pt-mistake-examples-input:focus {
+  border-color: #6a1b9a;
+  box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.15);
+}
+
+.pt-mistake-card.editing .pt-mistake-desc-input,
+.pt-mistake-card.editing .pt-mistake-examples-input {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.pt-mistake-card.editing .pt-mistake-field-label {
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #333;
+  font-size: 14px;
+}
+
+.pt-mistake-card.editing .pt-mistake-actions {
+  background: #fafafa;
+}
+
+.pt-mistake-card.editing .pt-save-mistake,
+.pt-mistake-card.editing .pt-save-new-mistake {
+  background-color: #6a1b9a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pt-mistake-card.editing .pt-save-mistake:hover,
+.pt-mistake-card.editing .pt-save-new-mistake:hover {
+  background-color: #5a1690;
+  box-shadow: 0 4px 8px rgba(106, 27, 154, 0.2);
+}
+
+.pt-mistake-card.editing .pt-cancel-mistake,
+.pt-mistake-card.editing .pt-cancel-new-mistake {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pt-mistake-card.editing .pt-cancel-mistake:hover,
+.pt-mistake-card.editing .pt-cancel-new-mistake:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+/* New mistake form special styling */
+.pt-mistake-card.new-mistake {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-style: dashed;
+}
+
+.pt-mistake-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pt-mistake-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.pt-mistake-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: #111827;
+  font-weight: 600;
+  position: relative;
+}
+
+.pt-mistake-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.pt-mistake-header.sev-error {
+  background: #fef2f2;
+}
+.pt-mistake-header.sev-error::before {
+  background-color: #ef4444;
+}
+
+.pt-mistake-header.sev-warning {
+  background: #fffbeb;
+}
+.pt-mistake-header.sev-warning::before {
+  background-color: #f59e0b;
+}
+
+.pt-mistake-header.sev-inform {
+  background: #eff6ff;
+}
+.pt-mistake-header.sev-inform::before {
+  background-color: #3b82f6;
+}
+
+.pt-mistake-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.pt-mistake-severity {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.pt-mistake-header.sev-error .pt-mistake-severity {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.pt-mistake-header.sev-warning .pt-mistake-severity {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.pt-mistake-header.sev-inform .pt-mistake-severity {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.pt-mistake-body {
+  padding: 16px;
+  color: #374151;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pt-mistake-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pt-mistake-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pt-mistake-field-value {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.pt-mistake-examples {
+  margin-top: 4px;
+  padding: 8px 12px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.pt-mistake-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid #f3f4f6;
+  background-color: #fafafa;
+}
+
+.pt-mistake-actions .pt-edit-mistake,
+.pt-mistake-actions .pt-delete-mistake {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.pt-mistake-actions .pt-edit-mistake {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.pt-mistake-actions .pt-edit-mistake:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.pt-mistake-actions .pt-delete-mistake {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.pt-mistake-actions .pt-delete-mistake:hover {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+/* Dialog - Redesigned for consistency */
+.pt-dialog[aria-hidden="true"] {
+  display: none;
+}
+.pt-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  -webkit-backdrop-filter: blur(4px);
+          backdrop-filter: blur(4px);
+}
+.pt-dialog-content {
+  width: 640px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  -webkit-animation: dialogFadeIn 0.3s ease-out;
+          animation: dialogFadeIn 0.3s ease-out;
+}
+@-webkit-keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.pt-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  color: #111827;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.pt-dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.pt-dialog-close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 20px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+.pt-dialog-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.pt-dialog-body {
+  padding: 20px;
+}
+.pt-dialog-body .pt-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.pt-dialog-body label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+.pt-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f3f4f6;
+  background-color: #f9fafb;
+}
+.pt-dialog-footer button {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+.pt-dialog-footer .pt-dialog-save {
+  background-color: #6a1b9a;
+  color: white;
+}
+.pt-dialog-footer .pt-dialog-save:hover {
+  background-color: #5a1690;
+  box-shadow: 0 4px 8px rgba(106, 27, 154, 0.2);
+}
+.pt-dialog-footer .pt-dialog-cancel {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+.pt-dialog-footer .pt-dialog-cancel:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+/* Experts read-only list */
+.pt-experts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.pt-expert-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px; /* rounder edges to match panel */
+}
+.pt-empty {
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Task Scheduler UI - Left 2/3 Column */
+
+/* Task list container */
+.task-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    height: 100%; /* Take full height of parent */
+    max-height: 100%; /* Don't exceed parent height */
+    overflow-y: auto; /* Only this container should scroll */
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* Prevent layout shifts during bubble expansion */
+    contain: layout;
+    /* Maintain scroll position during content changes */
+    position: relative;
+    /* Prevent scrolling from propagating to parent elements */
+    -ms-scroll-chaining: none;
+        overscroll-behavior: contain;
+    margin-left: 20px;
+}
+
+.task-list-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Task bubble - styled like chat bubbles */
+.task-bubble {
+    display: flex;
+    flex-direction: column;
+    padding-left: 26px;
+    padding-right: 26px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    min-height: 35px;
+    border-radius: 30px;
+    background: #fff;
+    border: 1px solid #ccc;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    position: relative;
+    /* Prevent layout shifts during expansion */
+    contain: layout;
+    /* Prevent flex shrink */
+    flex-shrink: 0;
+}
+
+/* Alternating shades to indicate consecutive param-identical groups */
+.task-bubble--white {
+    background-color: #ffffff;
+}
+
+.task-bubble--grey {
+    background-color: #f7f7f8; /* very subtle grey */
+    border-color: #969696;
+}
+
+/* Main content area of task bubble */
+.task-bubble-main {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* Mistakes dropdown area */
+.task-mistakes-dropdown {
+    display: none;
+    width: 100%;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    overflow: hidden;
+    /* Prevent layout shifts during expansion */
+    contain: layout;
+    /* Prevent flex shrink */
+    flex-shrink: 0;
+    /* Animation properties */
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+}
+
+/* Show mistakes dropdown when expanded */
+.task-bubble.mistakes-expanded .task-mistakes-dropdown {
+    display: block;
+    /* Ensure the dropdown content is visible and takes appropriate space */
+    max-height: 500px;
+    opacity: 1;
+    overflow-y: scroll;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.task-bubble.mistakes-expanded .task-mistakes-dropdown::-webkit-scrollbar {
+    display: none;
+}
+
+/* Score dropdown area */
+.task-score-dropdown {
+    display: none;
+    width: 100%;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    overflow: hidden;
+    /* Prevent layout shifts during expansion */
+    contain: layout;
+    /* Prevent flex shrink */
+    flex-shrink: 0;
+    /* Animation properties */
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+}
+
+/* Show score dropdown when expanded */
+.task-bubble.score-expanded .task-score-dropdown {
+    display: block;
+    /* Ensure the dropdown content is visible and takes appropriate space */
+    max-height: 500px;
+    opacity: 1;
+    overflow-y: scroll;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.task-bubble.score-expanded .task-score-dropdown::-webkit-scrollbar {
+    display: none;
+}
+
+/* Temporary collapsed state for scroll calculations */
+.task-bubble.temp-collapsed .task-mistakes-dropdown,
+.task-bubble.temp-collapsed .task-score-dropdown {
+    display: none;
+}
+
+.task-bubble.temp-collapsed {
+    height: auto !important;
+    min-height: 35px;
+}
+
+/* Ensure dropdown content doesn't affect other bubbles */
+.task-mistakes-dropdown .task-dropdown-content,
+.task-score-dropdown .task-dropdown-content {
+    /* Prevent content from affecting parent layout */
+    contain: content;
+    /* Ensure proper sizing */
+    box-sizing: border-box;
+    /* Prevent overflow */
+    overflow: hidden;
+    /* Animation for content */
+    -webkit-animation: dropdownContentFadeIn 0.4s ease-out;
+            animation: dropdownContentFadeIn 0.4s ease-out;
+}
+
+/* Dropdown content styling */
+.task-dropdown-content {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+/* Mistake details styling */
+.mistake-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 4px;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.mistake-details::-webkit-scrollbar {
+    display: none;
+}
+
+.mistake-category {
+    margin-bottom: 16px;
+}
+
+.mistake-category-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.mistake-category-header.inform {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.mistake-category-header.warning {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.mistake-category-header.error {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.mistake-category-header.unlisted {
+    background: #f9fafb;
+    color: #6b7280;
+}
+
+.mistake-category-count {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.mistake-detail-item {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mistake-detail-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+}
+
+.mistake-detail-item .mistake-name {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.mistake-detail-item .mistake-location {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.mistake-detail-item .mistake-location::before {
+    content: '📍';
+    margin-right: 4px;
+}
+
+.mistake-detail-item .mistake-explanation {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.4;
+    padding-left: 16px;
+    position: relative;
+}
+
+.mistake-detail-item .mistake-explanation::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #9ca3af;
+}
+
+/* Expert score details styling */
+.expert-score-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 4px;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.expert-score-details::-webkit-scrollbar {
+    display: none;
+}
+
+.expert-score-summary {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.expert-score-summary-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 8px;
+}
+
+.expert-score-summary-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #6a1b9a;
+    margin-bottom: 4px;
+}
+
+.expert-score-summary-subtitle {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.expert-score-item {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.expert-score-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+}
+
+.expert-score-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.expert-score-item .expert-field {
+    font-weight: 600;
+    color: #111827;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.expert-score-item .expert-field::before {
+    content: '👤';
+    margin-right: 6px;
+}
+
+.expert-score-item .expert-score {
+    font-weight: 700;
+    color: #6a1b9a;
+    font-size: 18px;
+    background: #f3e5f5;
+    padding: 4px 10px;
+    border-radius: 20px;
+    min-width: auto;
+}
+
+.expert-score-item .expert-comment {
+    flex: 1;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border-left: 3px solid #6a1b9a;
+    white-space: pre-line;
+}
+
+/* Empty state styling */
+.dropdown-empty-state {
+    text-align: center;
+    padding: 24px;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.dropdown-empty-state::before {
+    content: '📋';
+    display: block;
+    font-size: 24px;
+    margin-bottom: 8px;
+    font-style: normal;
+}
+
+/* Animations */
+@-webkit-keyframes dropdownContentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes dropdownContentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@-webkit-keyframes sectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes sectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Clickable area indicators */
+.task-bubble:not(.has-score) .task-score-container {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.task-bubble:not(.assessment-ready) .task-mistakes-indicator {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.task-bubble.assessment-ready .task-mistakes-indicator {
+    cursor: pointer;
+}
+
+.task-bubble.has-score .task-score-container {
+    cursor: pointer;
+}
+
+/* Subtle hover animation */
+.task-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Mistakes indicator - left side */
+.task-mistakes-indicator {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 16px;
+}
+
+.mistake-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mistake-number {
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.mistake-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+/* Colored mistake indicators */
+.mistake-item.blue .mistake-number {
+    color: #3b82f6;
+}
+
+.mistake-item.blue .mistake-circle {
+    background-color: #3b82f6;
+}
+
+.mistake-item.yellow .mistake-number {
+    color: #f59e0b;
+}
+
+.mistake-item.yellow .mistake-circle {
+    background-color: #f59e0b;
+}
+
+.mistake-item.red .mistake-number {
+    color: #ef4444;
+}
+
+.mistake-item.red .mistake-circle {
+    background-color: #ef4444;
+}
+
+.mistake-item.grey .mistake-number {
+    color: #6b7280;
+}
+
+.mistake-item.grey .mistake-circle {
+    background-color: #6b7280;
+}
+
+.mistake-gap {
+    width: 12px;
+    flex-shrink: 0;
+}
+
+/* Score container - positioned to the right of the text bar */
+.task-score-container {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    flex-shrink: 0;
+    width: 80px;
+    height: 40px;
+}
+
+/* Show score container when score exists */
+.task-score-container.show {
+    display: flex;
+}
+
+/* Position score at the right edge when shown */
+.task-bubble.has-score {
+    justify-content: space-between;
+}
+
+/* Score display with appear animation */
+.task-score {
+    width: 72px;
+    height: 36px;
+    border-radius: 24px;
+    background: #f5f5f5;
+    color: rgb(49, 49, 49);
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 36px;
+    opacity: 0;
+    transform: scale(0.5);
+}
+
+/* Score appear animation */
+.task-score.show {
+    -webkit-animation: scoreAppear 0.2s ease-out forwards;
+            animation: scoreAppear 0.2s ease-out forwards;
+}
+
+@-webkit-keyframes scoreAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes scoreAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Blinking animation for mistake indicators during analysis */
+.task-mistakes-indicator.analyzing .mistake-number,
+.task-mistakes-indicator.analyzing .mistake-circle {
+    -webkit-animation: mistakeBlink 0.8s steps(1, end) infinite;
+            animation: mistakeBlink 0.8s steps(1, end) infinite;
+}
+
+@-webkit-keyframes mistakeBlink {
+    0%, 50% {
+        opacity: 1;
+        visibility: visible;
+    }
+    51%, 100% {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@keyframes mistakeBlink {
+    0%, 50% {
+        opacity: 1;
+        visibility: visible;
+    }
+    51%, 100% {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* Chat text container - right side */
+.task-chat-text-container {
+    flex: 1;
+    height: 36px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    border-radius: 18px;
+    background-color: #fafafa;
+    transition: flex 0.3s ease;
+}
+
+
+.task-chat-text {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    text-align: right;
+    line-height: 36px;
+    font-size: 12px;
+    color: #222;
+    padding: 0 8px;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* Rounds counter: visually identical to the text bar.
+   Reuse task-chat-text-container for outer appearance and sizing.
+   Inner element aligns content center so the counter appears like a compact label. */
+.task-rounds-container {
+    /* In most cases this will inherit .task-chat-text-container styles.
+       Keep position: relative so inner .task-rounds-text can be absolute like .task-chat-text */
+    position: relative;
+    height: 36px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    border-radius: 18px;
+    background-color: #fafafa;
+    transition: flex 0.3s ease;
+    flex: 0 0 84px; /* default width; JS may override inline if needed */
+}
+
+/* Inner rounds text - mirrors .task-chat-text visual alignment but centered */
+.task-rounds-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 36px;
+    font-size: 12px;
+    color: #222;
+    padding: 0 8px;
+    text-align: center;
+}
+
+/* Number styling to match the role text weight and size */
+.task-rounds-number {
+    font-weight: 700;
+    font-size: 12px;
+    color: #222;
+}
+
+.task-chat-text::-webkit-scrollbar {
+    display: none;
+}
+
+/* Role-based text coloring */
+.task-chat-text .chat-user {
+    color: #a3a3a3;
+    font-weight: 850;
+}
+
+.task-chat-text .chat-assistant {
+    color: #000000;
+    font-weight: 500;
+}
+
+/* Unified buttons container */
+.task-buttons-container {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+}
+
+/* Task buttons - styled identically */
+.task-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: white;
+    color: rgb(74, 74, 74);
+    border: 0.8px solid #353535;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: none;
+    transition: border-width 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-button:hover {
+    border-width: 2px;
+}
+
+.task-button:active {
+    transform: scale(0.95);
+}
+
+/* Style SVG icons within task buttons */
+.task-button svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+}
+
+/* Special styling for the FAB button (add task) */
+.task-button.task-fab svg {
+    width: 28px;
+    height: 28px;
+}
+
+/* Special styling for the delete button - red outline */
+.task-button#task-delete-all {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.task-button#task-delete-all:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+/* Position the buttons container relative to the left column container */
+.parallel-left-column {
+    position: relative;
+}
+
+/* Mistake highlight styling in chat text */
+.mistake-highlight {
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+/* Highlight colors based on severity */
+.mistake-highlight.inform {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #1d4ed8;
+    border: 1px solid #3b82f6;
+}
+
+.mistake-highlight.warning {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #b45309;
+    border: 1px solid #f59e0b;
+}
+
+.mistake-highlight.error {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #b91c1c;
+    border: 1px solid #ef4444;
+}
+
+.mistake-highlight.unlisted {
+    background-color: rgba(107, 114, 128, 0.2);
+    color: #4b5563;
+    border: 1px solid #6b7280;
+}
+
+/* Add subtle animation for highlight appearance */
+.mistake-highlight {
+    -webkit-animation: highlightPulse 0.5s ease-out;
+            animation: highlightPulse 0.5s ease-out;
+}
+
+@-webkit-keyframes highlightPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+}
+
+@keyframes highlightPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Force progress feedback styles */
+.task-bubble.force-progress {
+    /* animation removed per request (no animated feedback) */
+    -webkit-animation: none !important;
+            animation: none !important;
+}
+
+.force-progress-notification {
+    /* animation removed per request (notification should be static then removed by JS) */
+    -webkit-animation: none !important;
+            animation: none !important;
+}
+
+@-webkit-keyframes forceProgressPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(115, 115, 115, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(131, 131, 131, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(128, 128, 128, 0);
+    }
+}
+
+@keyframes forceProgressPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(115, 115, 115, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(131, 131, 131, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(128, 128, 128, 0);
+    }
+}
+
+@-webkit-keyframes fadeInOut {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
+@keyframes fadeInOut {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}

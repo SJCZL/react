@@ -1,0 +1,106 @@
+/* textbox-snapshot.css
+   Styles for the global snapshot overlay and visual hints for snapshotable inputs
+*/
+
+/* Global overlay shown when snapshot actions occur */
+.tb-snapshot-overlay {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.tb-snapshot-overlay .tb-snapshot-message {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.tb-snapshot-overlay .tb-snapshot-meta {
+  font-size: 12px;
+  opacity: 0.9;
+  color: #ddd;
+}
+
+/* small fade-in for nicer UX */
+.tb-snapshot-overlay.show {
+  display: flex;
+  animation: tb-fade 220ms ease;
+}
+
+@keyframes tb-fade {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Snapshot badge appended to the input container
+   Use a ::after pseudo-element so multiple snapshotable fields do not
+   need additional DOM nodes and badges won't be accidentally missed.
+*/
+[data-snap-id] {
+  position: relative; /* ensure positioning context (script also sets this) */
+}
+
+/*
+[data-snap-id]::after {
+  content: "S";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #f2c94c;
+  color: #1b1b1b;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  border: 1px solid rgba(0,0,0,0.06);
+  z-index: 2;
+  pointer-events: none;
+  font-family: inherit;
+}
+  */
+
+/* Keep legacy class rules (in case a DOM badge is added elsewhere) */
+.tb-snapshot-badge {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  background: rgba(255, 255, 255, 0.54);
+  color: #939393;
+  padding: 5px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(177, 177, 177, 1);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Highlight snapshotable element on focus */
+/*
+[data-snap-id]:focus {
+  outline: 2px solid rgba(243, 170, 61, 0.35);
+  outline-offset: 2px;
+}
+*/
+/* Make sure the parent can be a positioning context (script sets it too) */
+[data-snap-id] {
+  position: relative;
+}
+
+/* Small responsive tweak for very narrow widths */
+@media (max-width: 420px) {
+  .tb-snapshot-overlay { top: 8px; font-size: 12px; padding: 6px 8px; }
+  .tb-snapshot-badge { top: 4px; right: 4px; padding: 2px 5px; font-size: 11px; }
+}

@@ -1,0 +1,1016 @@
+/* Scene Config Tab Styles */
+
+/* Global rule to prevent horizontal overflow only */
+#scenario-tab {
+    overflow-x: hidden; /* Prevent horizontal scrollbar */
+    overflow-y: auto; /* Enable vertical scrollbar */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+
+#scenario-tab::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Webkit browsers */
+}
+
+#direct-output {
+    min-height: 420px;
+}
+
+#scenario-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background: #f8f8f8;
+    color: #222;
+    box-sizing: border-box;
+}
+
+.scenario-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.scenario-section h2 {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* YAML Editor Styles */
+#yaml-editor-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    height: 600px; /* Fixed height instead of min-height */
+}
+
+.yaml-editor-view-container {
+    flex: 0 0 41.666%; /* 5/12 width */
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.yaml-form-view-container {
+    flex: 1; /* Remaining width */
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.yaml-editor-header,
+.form-view-header {
+    padding: 10px 20px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    flex-shrink: 0; /* Don't shrink the header */
+    text-align: right;
+}
+
+.yaml-editor-textarea {
+    flex: 1;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    resize: none;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6; /* match overlay line-height to avoid caret drift */
+    box-sizing: border-box;
+    background: #f9f9f9;
+    overflow-y: auto; /* Make textarea scrollable */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+
+.yaml-editor-textarea::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Webkit browsers */
+}
+
+.yaml-editor-textarea:focus {
+    outline: none;
+    background: #fff;
+}
+
+.yaml-editor-textarea.yaml-error {
+    background: #fff8f8;
+    color: #d32f2f;
+    border: 2px solid #d32f2f;
+    box-shadow: 0 0 8px rgba(211, 47, 47, 0.5);
+}
+
+.yaml-editor-error {
+    padding: 10px 15px;
+    background: #ffebee;
+    color: #d32f2f;
+    font-size: 12px;
+    border-top: 1px solid #ffcdd2;
+    flex-shrink: 0; /* Don't shrink the error message */
+}
+
+.form-view-container {
+    background: #f9f9f9;
+    overflow-y: auto; /* Make container scrollable */
+    overflow-x: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    flex: 1; /* Take remaining space */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+
+.form-view-container::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Webkit browsers */
+}
+
+.form-empty {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* New row-based form structure */
+.form-rows-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+    position: relative;
+}
+
+.form-row:hover {
+    background: #f5f5f5;
+}
+
+.form-row-key {
+    flex: 0 0 60px;
+    padding: 4px;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    word-break: break-word;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.form-row-key:hover {
+    color: #6a1b9a;
+}
+
+.form-row-value {
+    flex: 1;
+    margin-left: 8px;
+    min-width: 0; /* Allows flex item to shrink below content size */
+}
+
+/* Dynamic row indentation based on hierarchy level */
+.form-row {
+    padding-left: 8px;
+}
+
+/* Each level adds 16px of indentation */
+/* This is handled dynamically by JavaScript instead of hardcoded CSS */
+
+
+.form-field-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: none;
+    transition: all 0.2s ease;
+    min-height: 40px;
+    height: auto;
+    text-overflow: ellipsis;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.form-field-input:focus {
+    outline: none;
+    border-color: #6a1b9a;
+    box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.2);
+}
+
+/* Enhanced checkbox styling - matching chat left toolbar toggles */
+.form-field-input[type="checkbox"] {
+    height: 0;
+    width: 0;
+    visibility: hidden;
+}
+
+/* Create a custom toggle switch */
+.form-row-value:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+}
+
+/* Boolean toggle wrapper */
+.boolean-toggle-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.form-field-input[type="checkbox"] + .toggle-slider {
+    cursor: pointer;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    display: inline-block;
+    border-radius: 20px;
+    position: relative;
+    transition: background-color 0.3s;
+    border: 1px solid #888;
+}
+
+.form-field-input[type="checkbox"] + .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.form-field-input[type="checkbox"]:checked + .toggle-slider {
+    background-color: #cabad3;
+    border-color: #6a1b9a;
+}
+
+.form-field-input[type="checkbox"]:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Enhanced button styling - matching chat tab style */
+.add-array-item-btn,
+.add-object-property-btn,
+.remove-array-item-btn,
+.remove-object-property-btn {
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #222;
+    border: 1px solid #222;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    margin-right: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-weight: 500;
+    width: 45px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 13px;
+}
+
+.add-array-item-btn:hover,
+.add-object-property-btn:hover {
+    background-color: #eee;
+    color: #000;
+}
+
+.remove-array-item-btn,
+.remove-object-property-btn {
+    color: #d27a7a;
+    border: 1px solid #ffeaea;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    font-size: 11px;
+    line-height: 1;
+    border-radius: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+.remove-array-item-btn:hover,
+.remove-object-property-btn:hover {
+    background-color: #ffebee;
+    color: #b71c1c;
+    border-color: #b71c1c;
+}
+
+/* Null field styling */
+.form-null-container {
+    display: flex;
+    align-items: center;
+}
+
+.form-field-input[data-type="null"] {
+    background: #f5f5f5;
+    color: #888;
+    font-style: italic;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments for YAML Editor */
+@media (max-width: 768px) {
+    #yaml-editor-container {
+        flex-direction: column;
+    }
+    
+    .yaml-editor-view-container,
+    .yaml-form-view-container {
+        min-height: 300px;
+    }
+}
+
+/* Mapping Selector Styles */
+.mapping-selector {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.mapping-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 30px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    flex: 1; /* Make each option take equal space */
+    position: relative;
+}
+
+.mapping-option:hover {
+    background: #f5f5f5;
+    border-color: #999;
+}
+
+.mapping-option input[type="radio"] {
+    margin: 0;
+    appearance: none;
+    width: 100%;
+    height: 200%;
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.mapping-option label {
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    z-index: 1; /* Ensure label is above the radio button */
+}
+
+.mapping-option input[type="radio"]:checked + label {
+    color: #383838;
+    font-weight: bold;
+}
+
+.mapping-option:has(input[type="radio"]:checked) {
+    background: #f3e5f5;
+    border-color: #666666;
+}
+
+/* Mapping Config Styles */
+.mapping-config {
+    margin-bottom: 20px;
+}
+
+.config-panel {
+    display: none;
+}
+
+.config-panel.active {
+    display: block;
+}
+
+.config-panel label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.config-panel textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+#template-input {
+    min-height: 420px;
+}
+
+.config-panel textarea:focus {
+    outline: none;
+    border-color: #6a1b9a;
+}
+
+/* Generate Section Styles */
+.generate-section {
+    display: flex;
+    justify-content: center;
+}
+
+.generate-btn {
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #222;
+    border: 1px solid #222;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    margin-right: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-size: 12px;
+}
+
+.generate-btn:hover {
+    background-color: #eee;
+    color: #000;
+}
+
+/* Preview Container Styles */
+.preview-container {
+    display: flex;
+    gap: 0px; /* reduced gap to remove large whitespace between cards */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Wrapper that holds two separate cards (left preview and right scene-info) */
+.preview-row-wrapper {
+    width: 100%;
+}
+
+/* Row containing the two cards */
+.preview-row {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* Make .scenario-section behave as cards in the row */
+.preview-row .scenario-section {
+    flex: 1 1 50%;
+    min-width: 0; /* allow children to shrink properly */
+    padding: 18px;
+}
+
+/* Specific card helpers */
+.preview-card, .scene-info-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* ensure cards occupy full height and their headers align */
+}
+
+/* Ensure card content expands to fill card */
+.preview-card .preview-content,
+.scene-info-card .preview-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Textareas inside the cards fill available space and scroll */
+.preview-card .preview-content textarea,
+.scene-info-card .preview-content textarea {
+    flex: 1;
+    min-height: 500px;
+    max-height: 600px;
+    padding: 15px;
+    border-radius: 8px;
+    resize: vertical;
+    overflow: auto;
+}
+
+/* Scene info card visual tweaks */
+.scene-info-card .preview-content textarea.scene-info-textarea[readonly] {
+    background: #f4f6f8;
+    color: #555;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
+/* Subtle vertical divider between cards to replace large gap */
+.preview-container > .preview-column + .preview-column::before {
+    content: "";
+    width: 1px;
+    background: rgba(0,0,0,0.06);
+    margin: 0 6px; /* keep a small breathing room */
+    align-self: stretch;
+}
+
+/* Responsive: stack cards vertically on narrow screens */
+@media (max-width: 768px) {
+    .preview-row {
+        flex-direction: column;
+    }
+    .preview-row .scenario-section {
+        min-height: 200px;
+    }
+}
+
+/* Each column inside the preview container */
+.preview-column {
+    flex: 1 1 50%;
+    min-width: 0; /* allow proper shrinking */
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+}
+
+.preview-header span {
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.preview-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.copy-btn, .apply-btn {
+    padding: 10px 20px;
+    background-color: #f1f1f1;
+    color: #222;
+    border: 1px solid #222;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    margin-right: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-size: 12px;
+}
+
+.copy-btn:hover, .apply-btn:hover {
+    background-color: #eee;
+    color: #000;
+}
+
+.apply-btn {
+    border-color: #6a1b9a;
+}
+
+.apply-btn:hover {
+    background-color: #e3dfe8;
+    border-color: #4a148c;
+}
+
+.apply-btn:active {
+    color: #fff;
+    background-color: #6a1b9a;
+    border-color: #6a1b9a;
+}
+
+.preview-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.preview-content textarea {
+    width: 100%;
+    min-height: 320px; /* taller preview per request */
+    max-height: 640px;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: inherit;
+    line-height: 1.4;
+    background: #f9f9f9;
+}
+
+/* Right-side scene info textarea: same style but greyed out and clearly read-only */
+.scene-info-textarea[readonly] {
+    background: #f4f6f8;
+    color: #555;
+    border-color: #e0e0e0;
+    cursor: not-allowed;
+    opacity: 0.98;
+}
+
+.preview-content textarea:focus {
+    outline: none;
+    border-color: #6a1b9a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .mapping-selector {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    
+    .preview-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .preview-actions {
+        justify-content: center;
+    }
+}
+
+
+
+/* Top section container for YAML editor and mapping method */
+.top-section-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.yaml-editor-section {
+    flex: 0 0 60%;
+}
+
+.mapping-section {
+    flex: 1; /* Takes the remaining space */
+}
+
+/* Preview section taking full width at the bottom */
+.preview-section {
+    width: 100%;
+}
+
+/* Anonymize button styling - reusing copy button style with red color */
+.anonymize-btn {
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #bdbdbd;
+    border: 1px solid #e1e1e1;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    margin-right: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-size: 12px;
+}
+
+.anonymize-btn:hover {
+    background-color: #ffebee;
+    color: #b71c1c;
+    border-color: #b71c1c;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    margin: 0;
+}
+
+/* Auto Fill Popup Styles */
+.auto-fill-popup {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.auto-fill-popup-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 20px;
+    width: 80%;
+    max-width: 600px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: popupFadeIn 0.3s ease-out;
+}
+
+@keyframes popupFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auto-fill-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 20px 20px 0 0;
+}
+
+.auto-fill-popup-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.auto-fill-popup-body {
+    padding: 25px;
+}
+
+.auto-fill-input-container {
+    margin-bottom: 20px;
+}
+
+.auto-fill-input-container label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.auto-fill-input-container textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.auto-fill-input-container textarea:focus {
+    outline: none;
+    border-color: #6a1b9a;
+    box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.1);
+}
+
+.auto-fill-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.cancel-btn, .confirm-btn {
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid;
+}
+
+.cancel-btn {
+    background-color: #fff;
+    color: #666;
+    border-color: #ddd;
+}
+
+.cancel-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+.confirm-btn {
+    background-color: #6a1b9a;
+    color: #fff;
+    border-color: #6a1b9a;
+}
+
+.confirm-btn:hover {
+    background-color: #4a148c;
+    border-color: #4a148c;
+}
+
+.close-popup {
+    color: #aaa;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close-popup:hover {
+    color: #333;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* Auto-fill button styling - similar to anonymize button but with different color */
+.auto-fill-btn {
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #bdbdbd;
+    border: 1px solid #e1e1e1;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 6px;
+    margin-right: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-size: 12px;
+}
+
+.auto-fill-btn:hover {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border-color: #2e7d32;
+}
+/* YAML editor syntax highlight styles (overlay) */
+.yaml-editor-overlay-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #fbfbfc 0%, #ffffff 100%);
+    border-radius: 0;
+}
+
+/* The highlighted pre sits under the textarea */
+.yaml-highlight {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 15px;
+    box-sizing: border-box;
+    overflow: auto;
+    pointer-events: none; /* Let textarea receive events */
+    color: #212a2e; /* base text color */
+    background: transparent;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre;
+}
+
+/* Make the code container behave like code */
+.yaml-highlight-code {
+    display: block;
+    white-space: pre; /* match textarea wrap=off so layout lines align exactly */
+    word-break: break-word;
+}
+
+/* Keys (fields) - prominent and bold */
+.yaml-key {
+    color: #131c84; /* indigo */
+    font-weight: 700;
+}
+
+/* Non-key elements: keep normal weight so glyph widths match the textarea exactly */
+.yaml-value,
+.yaml-list-mark,
+.yaml-string,
+.yaml-number,
+.yaml-boolean,
+.yaml-null,
+.yaml-other {
+    font-weight: 400; /* normal - keeps character widths consistent with textarea */
+    opacity: 0.78; /* light visual weight */
+    transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+/* Differentiate data types with colors (subtle, light) */
+.yaml-string {
+    color: #8aaa8b; /* green */
+}
+.yaml-number {
+    color: #a085b1; /* purple */
+}
+.yaml-boolean {
+    color: #ed9f5f; /* orange */
+}
+.yaml-null {
+    color: #c8c7c7; /* grey */
+}
+.yaml-other {
+    color: #8fa1a9; /* slate */
+}
+
+/* List marker style */
+.yaml-list-mark {
+    color: #607d8b;
+    margin-right: 0; /* avoid adding extra visual gap that misaligns the caret */
+}
+
+/* Comments appear muted and italic */
+.yaml-comment {
+    color: #9e9e9e;
+    font-style: italic;
+    opacity: 0.85;
+}
+
+/* Comments appear muted and italic */
+.yaml-comment {
+    color: #9e9e9e;
+    font-style: italic;
+    opacity: 0.85;
+}
+
+/* Keep textarea visually transparent but caret visible */
+.yaml-editor-textarea {
+    background: transparent !important;
+    color: transparent !important;
+    caret-color: #000 !important;
+    z-index: 2;
+}
+
+/* Ensure error state still visible as overlay border */
+.yaml-editor-textarea.yaml-error {
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.15);
+}
+
+/* Match scroll behavior between overlay and textarea */
+.yaml-editor-overlay-wrapper .yaml-highlight::-webkit-scrollbar {
+    width: 8px;
+}
+.yaml-editor-overlay-wrapper .yaml-highlight::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.08);
+    border-radius: 4px;
+}
+
+/* Small responsive tweak to keep overlay padding consistent */
+@media (max-width: 768px) {
+    .yaml-highlight,
+    .yaml-editor-textarea {
+        padding: 12px !important;
+    }
+}

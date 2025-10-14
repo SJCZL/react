@@ -1,0 +1,110 @@
+/* Debug Overlay Styles */
+#debug-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    color: #000;
+    min-width: 200px;
+    max-width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 10000;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#debug-overlay.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+#debug-overlay.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.debug-section {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.debug-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.debug-section-title {
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.debug-item {
+    margin: 2px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.debug-key {
+    color: #444;
+    font-weight: 500;
+}
+
+.debug-value {
+    color: #000;
+    font-weight: 400;
+    text-align: right;
+    word-break: break-word;
+    max-width: 60%;
+}
+
+.debug-value.null {
+    color: #999;
+    font-style: italic;
+}
+
+.debug-value.number {
+    color: #0066cc;
+}
+
+.debug-value.boolean {
+    color: #d32f2f;
+}
+
+.debug-value.string {
+    color: #2e7d32;
+}
+
+/* Hide scrollbar for debug overlay */
+#debug-overlay::-webkit-scrollbar {
+    width: 4px;
+}
+
+#debug-overlay::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 2px;
+}
+
+#debug-overlay::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
+#debug-overlay::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.15);
+}

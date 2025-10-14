@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词结构演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/scene-config.css">
+    <link rel="stylesheet" href="css/debug-overlay.css">
+</head>
+<body>
+
+    <div id="header">
+        <h1>
+            提示词结构演示
+            <span style="font-size:0.2em; color:#888; font-weight:normal; margin-left:10px;">8.20-1</span>
+            <span id="help-icon" class="help-icon" title="快捷键和技巧">?</span>
+        </h1>
+        <div id="chat-controls">
+            <button id="model-config-button" title="模型配置">⚙️ 模型设置</button>
+        </div>
+    </div>
+
+    <!-- Help Popup -->
+    <div id="help-popup" class="help-popup">
+        <div class="help-popup-content">
+            <div class="help-popup-header">
+                <h3>快捷键和操作技巧</h3>
+                <span id="close-help" class="close-popup">&times;</span>
+            </div>
+            <div class="help-popup-body">
+                <!-- Help content will be dynamically inserted by HelpSystem -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto Fill Popup -->
+    <div id="auto-fill-popup" class="auto-fill-popup">
+        <div class="auto-fill-popup-content">
+            <div class="auto-fill-popup-header">
+                <h3>自动字段填充</h3>
+                <span id="close-auto-fill" class="close-popup">&times;</span>
+            </div>
+            <div class="auto-fill-popup-body">
+                <div class="auto-fill-input-container">
+                    <label for="auto-fill-input">请输入您的自定义信息：</label>
+                    <textarea id="auto-fill-input" rows="8" placeholder="描述您希望如何填充YAML字段，例如顾客具体信息等。"></textarea>
+                </div>
+                <div class="auto-fill-actions">
+                    <button id="cancel-auto-fill" class="cancel-btn">取消</button>
+                    <button id="confirm-auto-fill" class="confirm-btn">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-container">
+        <button class="tab-link active" data-tab="chat-tab">主对话</button>
+        <button class="tab-link" data-tab="scenario-tab">场景配置</button>
+        <button class="tab-link" data-tab="parallel-tab">并行测试</button>
+        <button class="tab-link" data-tab="preset-tab">预设管理</button>
+    </div>
+
+    <div id="chat-tab" class="tab-content active">
+        <div id="chat-view">
+            <div id="left-toolbar">
+                <div class="setting">
+                    <label for="initial-response">初始响应</label>
+                    <textarea id="initial-response" data-snap-id="ct-initial-response" placeholder="自动响应机制的第一条消息"></textarea>
+                </div>
+                <div class="setting">
+                    <label for="response-prompt">响应提示</label>
+                    <textarea id="response-prompt" placeholder="操控自动响应机制的提示词，比如「你是销售」">你是测试用通用销售人员，需要根据上下文判断当前场景和应当销售的产品。你进行的是当面的短对话，一句一句说，输出简练内容。你输出的都是话，没有括号和别的什么花里胡哨的。你看到的所有对方说的话，都是对方说的话。只有你自己的话是你自己的话。</textarea>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="auto-response-toggle">
+                    <label for="auto-response-toggle" class="slider"></label>
+                    <label for="auto-response-toggle">启用自动响应</label>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="continuous-response-toggle" disabled>
+                    <label for="continuous-response-toggle" class="slider"></label>
+                    <label for="continuous-response-toggle">启用连续响应</label>
+                </div>
+                <div id="end-condition-container" class="setting" style="display: none;">
+                    <label for="end-condition-select">结束条件</label>
+                    <div class="end-condition-input-group">
+                        <div class="custom-select-wrapper">
+                            <select id="end-condition-select" style="display: none;">
+                                <option value="roundLimit">对话轮次限制</option>
+                                <option value="assistantRegex" selected>助教正则匹配</option>
+                                <option value="userRegex">用户正则匹配</option>
+                            </select>
+                            <div class="custom-select">
+                                <div class="custom-select-trigger"><span>助教正则匹配</span><div class="arrow"></div></div>
+                                <div class="custom-options">
+                                    <span class="custom-option" data-value="roundLimit">对话轮次限制</span>
+                                    <span class="custom-option selected" data-value="assistantRegex">助教正则匹配</span>
+                                    <span class="custom-option" data-value="userRegex">用户正则匹配</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="end-condition-value-container">
+                            <div id="round-limit-setting" style="display: none;">
+                                <input type="number" id="dialogue-round-limit-input" value="10" min="1">
+                            </div>
+                            <div id="assistant-regex-setting">
+                                <input type="text" id="assistant-regex-match-input" placeholder="输入正则表达式" value="<\?END_CHAT>">
+                            </div>
+                            <div id="user-regex-setting" style="display: none;">
+                                <input type="text" id="user-regex-match-input" placeholder="输入正则表达式">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analysis Configuration -->
+                <div class="analysis-section">
+                    <h3>分析设置</h3>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="auto-analysis-toggle" checked>
+                        <label for="auto-analysis-toggle" class="slider"></label>
+                        <label for="auto-analysis-toggle">自动生成分析</label>
+                    </div>
+                </div>
+            </div>
+            <div id="bubble-region">
+                <div id="info-panel" class="info-panel-hidden">
+                    <div class="info-panel-content">
+                        <div id="message-info">
+                            <p>选择一个消息以查看详细信息</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="chat-container">
+                    <!-- 消息将通过 JavaScript 渲染到这里 -->
+                </div>
+            </div>
+        </div>
+        <div id="input-container">
+            <button id="clear-chat-button" title="清除聊天记录">清除</button>
+            <textarea id="message-input" placeholder="输入您的消息..." rows="1"></textarea>
+            <input type="file" id="load-chat-input" accept=".json" style="display: none;">
+            <button id="load-chat-button" title="读取聊天记录">读取记录</button>
+            <button id="save-chat-button" title="保存聊天记录">保存记录</button>
+            <button id="send-button">发送</button>
+        </div>
+    </div>
+
+    <div id="scenario-tab" class="tab-content">
+        <div id="scenario-container">
+            <!-- Top section: YAML editor and mapping method side by side -->
+            <div class="top-section-container">
+                <div class="scenario-section yaml-editor-section">
+                    <div class="section-header">
+                        <h2>YAML 配置编辑器</h2>
+                        <div class="header-buttons">
+                            <button id="auto-fill-yaml-button" class="auto-fill-btn" title="使用LLM自动填充YAML字段">自动字段填充</button>
+                            <button id="anonymize-yaml-button" class="anonymize-btn" title="将所有字符串设为'...'，数字设为0，布尔值设为false">匿名化</button>
+                        </div>
+                    </div>
+                    <div id="yaml-editor-container">
+                        <!-- YAML editor will be initialized here -->
+                    </div>
+                </div>
+                
+                <div class="scenario-section mapping-section">
+                    <h2>映射方式</h2>
+                    <div class="mapping-selector">
+                        <div class="mapping-option">
+                            <input type="radio" id="template-mapping" name="mapping-type" value="template" checked>
+                            <label for="template-mapping">模板替换</label>
+                        </div>
+                        <div class="mapping-option">
+                            <input type="radio" id="llm-mapping" name="mapping-type" value="llm">
+                            <label for="llm-mapping">LLM生成</label>
+                        </div>
+                        <div class="mapping-option">
+                            <input type="radio" id="direct-mapping" name="mapping-type" value="direct">
+                            <label for="direct-mapping">直接输出</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mapping-config">
+                        <div id="template-config" class="config-panel active">
+                            <label for="template-input">模板内容：</label>
+                            <textarea id="template-input" data-snap-id="template-input" rows="8" placeholder="使用 {{字段名}} 或 {{路径.字段名}} 作为占位符，支持嵌套路径如 {{顾客画像.基本信息.年龄}}。"></textarea>
+                        </div>
+                        
+                        <div id="llm-config" class="config-panel">
+                            <label for="llm-context">LLM上下文：</label>
+                            <textarea id="llm-context" data-snap-id="llm-context" rows="6" placeholder="为LLM提供额外的上下文信息"></textarea>
+                            <label for="llm-instruction">生成指令：</label>
+                            <textarea id="llm-instruction" data-snap-id="llm-instruction" rows="4" placeholder="告诉LLM如何生成系统提示"></textarea>
+                        </div>
+                        
+                        <div id="direct-config" class="config-panel">
+                            <label for="direct-output">直接输出内容：</label>
+                            <textarea id="direct-output" data-snap-id="direct-output" rows="4" placeholder="输入要直接输出的固定文本"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="generate-section">
+                        <button id="generate-prompt-button" class="generate-btn">生成系统提示</button>
+                    </div>
+                </div>
+            </div>
+            
+                        <!-- Bottom section: Output preview split into two columns -->
+            <div class="scenario-section preview-section">
+                <h2>输出预览</h2>
+                <div class="preview-container">
+                    <!-- Left column: Generated system prompt -->
+                    <div class="preview-column">
+                        <div class="preview-card">
+                            <div class="preview-header">
+                                <span>生成的系统提示：</span>
+                                <div class="preview-actions">
+                                    <button id="copy-prompt-button" class="copy-btn" title="复制到剪贴板">复制</button>
+                                    <button id="apply-prompt-button" class="apply-btn" title="应用到主对话">应用到主对话</button>
+                                </div>
+                            </div>
+                            <div class="preview-content">
+                                <textarea id="generated-prompt" readonly placeholder="生成的系统提示将显示在这里..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right column: Scene info (samely styled, greyed out) -->
+                    <div class="preview-column">
+                        <div class="scene-info-card">
+                            <div class="preview-header">
+                                <span>场景信息：</span>
+                                <div class="preview-actions">
+                                    <button id="copy-scene-info-button" class="copy-btn" title="复制场景信息">复制</button>
+                                </div>
+                            </div>
+                            <div class="preview-content">
+                                <textarea id="generated-scene-info" readonly placeholder="场景信息将显示在这里..." class="scene-info-textarea" aria-label="场景信息"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="parallel-tab" class="tab-content">
+        <div id="parallel-container">
+            <div id="parallel-left-column" class="parallel-left-column"></div>
+            <div id="parallel-right-column" class="parallel-right-column"></div>
+        </div>
+    </div>
+
+    <div id="preset-tab" class="tab-content">
+        <div id="preset-container">
+            <!-- Preset manager content will be added here -->
+        </div>
+    </div>
+
+
+    <link rel="stylesheet" href="css/parallel-test.css">
+    <link rel="stylesheet" href="css/preset-manager.css">
+    <link rel="stylesheet" href="css/textbox-snapshot.css">
+    <script type="module" src="js/textbox-snapshot/manager.js"></script>
+    <script type="module" src="js/parallel-test/ui/ConfigPanel.js"></script>
+    <script type="module" src="js/parallel-test/ui/TaskUIManager.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
