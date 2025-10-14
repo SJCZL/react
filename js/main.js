@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make sceneConfigManager globally accessible
     window.sceneConfigManager = sceneConfigManager;
 
-    // 确保场景配置管理器在标签页激活时重新初始化模型选择器
+    // 确保待测试prompt配置管理器在标签页激活时重新初始化模型选择器
     const scenarioTabBtn = document.querySelector('.tab-link[data-tab="scenario-tab"]');
     if (scenarioTabBtn) {
         scenarioTabBtn.addEventListener('click', () => {

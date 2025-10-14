@@ -1,7 +1,7 @@
 export const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
 export const MODEL_NAME = 'qwen-max';
 
-// 默认系统提示词现在应该从场景配置中读取，不再硬编码在这里
+// 默认系统提示词现在应该从待测试prompt配置中读取，不再硬编码在这里
 export const DEFAULT_SYSTEM_PROMPT = '';
 
 export const DEFAULT_RESPONSE_PROMPT = '你是测试用通用销售人员，需要根据上下文判断当前场景和应当销售的产品。你进行的是当面的短对话，一句一句说，输出简练内容。你输出的都是话，没有括号和别的什么花里胡哨的。你看到的所有对方说的话，都是对方说的话。只有你自己的话是你自己的话。';

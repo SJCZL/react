@@ -155,8 +155,8 @@ function renderBasicTab() {
             <textarea id="pt-chat-system-prompt" class="pt-textarea" readonly>${escapeHtml((p && p.chatSystemPrompt) ?? state.chatSystemPrompt)}</textarea>
           </div>
           <div class="pt-section pt-full">
-            <label>场景信息（同步场景配置）</label>
-            <textarea id="pt-scene-info" class="pt-textarea" readonly placeholder="场景信息将自动从场景配置标签页同步...">${escapeHtml((p && p.sceneInfo) ?? state.sceneInfo ?? '')}</textarea>
+            <label>场景信息（同步待测试prompt配置）</label>
+<textarea id="pt-scene-info" class="pt-textarea" readonly placeholder="场景信息将自动从待测试prompt配置标签页同步...">${escapeHtml((p && p.sceneInfo) ?? state.sceneInfo ?? '')}</textarea>
           </div>
           <div class="pt-section pt-full">
             <label>初始消息</label>
@@ -627,11 +627,18 @@ function populateProviderOptionsForPT(selectElement, type) {
 function populateModelOptionsForPT(selectElement, type) {
    if (!selectElement || !window.modelConfig) return;
 
-   const models = window.modelConfig.getProviderModels();
+   const currentProvider = window.modelConfig.getCurrentProvider();
+   const models = currentProvider ? currentProvider.models : [];
    const currentModel = window.modelConfig.getCurrentModel();
 
    // 清空现有选项
    selectElement.innerHTML = '';
+
+   // 清空自定义选择器的选项
+   const customOptions = document.getElementById(`pt-${type}-model-options`);
+   if (customOptions) {
+       customOptions.innerHTML = '';
+   }
 
    models.forEach(model => {
      const option = document.createElement('option');
@@ -646,8 +653,24 @@ function populateModelOptionsForPT(selectElement, type) {
      addCustomSelectOption(`pt-${type}-model-options`, model.id, model.name, model.id === window.modelConfig.currentModel);
    });
 
+   // 设置默认选中项（暂时选择第一个）
+   if (models.length > 0 && !selectElement.value) {
+     selectElement.value = models[0].id;
+     // 更新自定义选择器的选中状态
+     if (customOptions) {
+         customOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+         const firstOption = customOptions.querySelector('.custom-option');
+         if (firstOption) {
+             firstOption.classList.add('selected');
+         }
+     }
+   }
+
    // 更新自定义选择器显示
    updateCustomSelectTrigger(`pt-${type}-model-trigger`, currentModel ? currentModel.name : '选择模型');
+   
+   // 重新初始化自定义选择器以绑定新选项的事件
+   setupCustomSelectForModel(`pt-${type}-model-trigger`, `pt-${type}-model-options`, `pt-${type}-model`, type, selectElement);
 }
 
 function addCustomSelectOption(optionsId, value, text, selected = false) {

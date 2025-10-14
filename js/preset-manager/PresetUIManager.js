@@ -118,7 +118,7 @@ export class PresetUIManager {
                             <label>适用标签:</label>
                             <div class="checkbox-group">
                                 <label><input type="checkbox" value="主对话"> 主对话</label>
-                                <label><input type="checkbox" value="场景配置"> 场景配置</label>
+                                <label><input type="checkbox" value="待测试prompt配置"> 待测试prompt配置</label>
                                 <label><input type="checkbox" value="并行测试"> 并行测试</label>
                             </div>
                         </div>
@@ -289,7 +289,7 @@ export class PresetUIManager {
 
         // Tab checkbox events
         document.querySelectorAll('#preset-modal input[type="checkbox"][value]').forEach(checkbox => {
-            if (['主对话', '场景配置', '并行测试'].includes(checkbox.value)) {
+            if (['主对话', '待测试prompt配置', '并行测试'].includes(checkbox.value)) {
                 checkbox.addEventListener('change', () => this.updateTextboxCheckboxes());
             }
         });
@@ -595,7 +595,7 @@ export class PresetUIManager {
 
         // Set tab checkboxes
         document.querySelectorAll('#preset-modal input[type="checkbox"][value]').forEach(cb => {
-            if (['主对话', '场景配置', '并行测试'].includes(cb.value)) {
+            if (['主对话', '待测试prompt配置', '并行测试'].includes(cb.value)) {
                 cb.checked = this.currentPreset.tabs.includes(cb.value);
             }
         });
@@ -628,7 +628,7 @@ export class PresetUIManager {
 
         const tabs = Array.from(document.querySelectorAll('#preset-modal input[type="checkbox"][value]:checked'))
             .map(cb => cb.value)
-            .filter(value => ['主对话', '场景配置', '并行测试'].includes(value));
+            .filter(value => ['主对话', '待测试prompt配置', '并行测试'].includes(value));
 
         const textBoxes = Array.from(document.querySelectorAll('#textbox-checkboxes input[type="checkbox"]:checked'))
             .map(cb => cb.value);
@@ -683,7 +683,7 @@ export class PresetUIManager {
 
         // Find which tabs this preset can be applied to
         const applicableTabs = (Array.isArray(this.currentPreset.tabs) ? this.currentPreset.tabs : []).filter(tab => {
-            return ['主对话', '场景配置', '并行测试'].includes(tab);
+            return ['主对话', '待测试prompt配置', '并行测试'].includes(tab);
         });
 
         if (applicableTabs.length === 0) {
@@ -743,7 +743,7 @@ export class PresetUIManager {
         // Map tab names to tab IDs
         const tabIdMap = {
             '主对话': 'chat-tab',
-            '场景配置': 'scenario-tab',
+            '待测试prompt配置': 'scenario-tab',
             '并行测试': 'parallel-tab'
         };
 

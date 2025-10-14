@@ -766,11 +766,18 @@ ${systemPrompt}
         const selectElement = document.getElementById('prompt-gen-model');
         if (!selectElement || !window.modelConfig) return;
 
-        const models = window.modelConfig.getProviderModels();
+        const currentProvider = window.modelConfig.getCurrentProvider();
+        const models = currentProvider ? currentProvider.models : [];
         const currentModel = window.modelConfig.getCurrentModel();
 
         // 清空现有选项
         selectElement.innerHTML = '';
+
+        // 清空自定义选择器的选项
+        const customOptions = document.getElementById('prompt-gen-model-options');
+        if (customOptions) {
+            customOptions.innerHTML = '';
+        }
 
         models.forEach(model => {
             const option = document.createElement('option');
@@ -785,11 +792,27 @@ ${systemPrompt}
             this.addPromptGenCustomSelectOption('prompt-gen-model-options', model.id, model.name, model.id === window.modelConfig.currentModel);
         });
 
+        // 设置默认选中项（暂时选择第一个）
+        if (models.length > 0 && !selectElement.value) {
+            selectElement.value = models[0].id;
+            // 更新自定义选择器的选中状态
+            if (customOptions) {
+                customOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                const firstOption = customOptions.querySelector('.custom-option');
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                }
+            }
+        }
+
         // 更新自定义选择器显示
         this.updatePromptGenCustomSelectTrigger('prompt-gen-model-trigger', currentModel ? currentModel.name : '选择模型');
 
         // 更新当前模型显示
         this.updateCurrentPromptGenModelDisplay();
+        
+        // 重新初始化自定义选择器以绑定新选项的事件
+        this.setupPromptGenCustomSelect('prompt-gen-model-trigger', 'prompt-gen-model-options', 'prompt-gen-model');
     }
 
     /**

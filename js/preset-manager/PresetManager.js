@@ -16,7 +16,7 @@ export class PresetManager {
                 '初始响应': 'initial-response',
                 '响应提示': 'response-prompt'
             },
-            '场景配置': {
+            '待测试prompt配置': {
                 '场景结构编辑': 'yaml-editor-textarea',
                 '模板内容': 'template-input',
                 'LLM上下文': 'llm-context',

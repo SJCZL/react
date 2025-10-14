@@ -417,7 +417,7 @@ export class Chat {
         // 检查系统提示词是否为空
         const systemPrompt = this.chatService.getSystemPrompt();
         if (!systemPrompt || systemPrompt.trim() === '') {
-            alert('请先设置系统提示词。\n\n💡 提示：\n1. 点击"场景配置"标签页\n2. 使用YAML编辑器配置场景\n3. 点击"生成系统提示"按钮\n4. 点击"应用到主对话"按钮');
+            alert('请先设置系统提示词。\n\n💡 提示：\n1. 点击"待测试prompt配置"标签页\n2. 使用YAML编辑器配置场景\n3. 点击"生成系统提示"按钮\n4. 点击"应用到主对话"按钮');
             return;
         }
 
@@ -986,11 +986,19 @@ export class Chat {
         const chatModelSelect = document.getElementById('chat-model-select');
         if (!chatModelSelect || !this.modelConfig) return;
 
-        const models = this.modelConfig.getProviderModels();
+        // 获取当前提供商的模型列表
+        const currentProvider = this.modelConfig.getCurrentProvider();
+        const models = currentProvider ? currentProvider.models : [];
         const currentModel = this.modelConfig.getCurrentModel();
 
         // 清空现有选项
         chatModelSelect.innerHTML = '';
+
+        // 清空自定义选择器的选项
+        const customOptions = chatModelSelect.parentElement.querySelector('.custom-options');
+        if (customOptions) {
+            customOptions.innerHTML = '';
+        }
 
         models.forEach(model => {
             const option = document.createElement('option');
@@ -1010,14 +1018,29 @@ export class Chat {
                 customOption.classList.add('selected');
             }
 
-            const customOptions = chatModelSelect.parentElement.querySelector('.custom-options');
             if (customOptions) {
                 customOptions.appendChild(customOption);
             }
         });
 
+        // 设置默认选中项（暂时选择第一个）
+        if (models.length > 0 && !chatModelSelect.value) {
+            chatModelSelect.value = models[0].id;
+            // 更新自定义选择器的选中状态
+            if (customOptions) {
+                customOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                const firstOption = customOptions.querySelector('.custom-option');
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                }
+            }
+        }
+
         // 更新自定义选择器UI
         this.updateCustomSelectUI('chat-model-select', currentModel ? currentModel.name : '选择模型');
+        
+        // 重新初始化自定义选择器以绑定新选项的事件
+        this.initializeCustomSelect('chat-model-select');
     }
 
     /**
@@ -1040,11 +1063,18 @@ export class Chat {
         const selectElement = document.getElementById(`${type}-model-select`);
         if (!selectElement) return;
 
-        // 这里暂时使用所有可用模型，实际应该从分析配置中获取
-        const models = this.modelConfig.getProviderModels();
+        // 获取当前提供商的模型列表
+        const currentProvider = this.modelConfig.getCurrentProvider();
+        const models = currentProvider ? currentProvider.models : [];
 
         // 清空现有选项
         selectElement.innerHTML = '';
+
+        // 清空自定义选择器的选项
+        const customOptions = selectElement.parentElement.querySelector('.custom-options');
+        if (customOptions) {
+            customOptions.innerHTML = '';
+        }
 
         models.forEach(model => {
             const option = document.createElement('option');
@@ -1058,7 +1088,6 @@ export class Chat {
             customOption.dataset.value = model.id;
             customOption.textContent = model.name;
 
-            const customOptions = selectElement.parentElement.querySelector('.custom-options');
             if (customOptions) {
                 customOptions.appendChild(customOption);
             }
@@ -1067,11 +1096,22 @@ export class Chat {
         // 设置默认选中项（暂时选择第一个）
         if (models.length > 0 && !selectElement.value) {
             selectElement.value = models[0].id;
+            // 更新自定义选择器的选中状态
+            if (customOptions) {
+                customOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                const firstOption = customOptions.querySelector('.custom-option');
+                if (firstOption) {
+                    firstOption.classList.add('selected');
+                }
+            }
         }
 
         // 更新自定义选择器UI
         const selectedModel = models.find(m => m.id === selectElement.value);
         this.updateCustomSelectUI(`${type}-model-select`, selectedModel ? selectedModel.name : '选择模型');
+        
+        // 重新初始化自定义选择器以绑定新选项的事件
+        this.initializeCustomSelect(`${type}-model-select`);
     }
 
     /**
@@ -1089,6 +1129,7 @@ export class Chat {
                 const providerId = e.target.value;
                 if (this.modelConfig.switchProvider(providerId)) {
                     this.populateModelOptions();
+                    this.populateAnalysisModelOptions(); // 添加这行，更新分析模型选项
                     this.updateChatServiceModel();
                     this.updateCurrentModelDisplay();
                 }

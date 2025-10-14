@@ -117,6 +117,8 @@ export class DebugOverlay {
                 totalStats.totalRequests += stats.totalRequests || 0;
             } catch (e) {
                 console.warn('[DebugOverlay] Error getting stats from service:', e);
+                // 记录错误信息到调试面板
+                this.set('ERROR', 'Service Stats', e.message);
             }
         });
 
@@ -125,6 +127,10 @@ export class DebugOverlay {
 
         // Update global stats
         this.globalApiStats = totalStats;
+        
+        // 添加系统状态信息
+        this.set('SYSTEM', 'Memory Usage', this.formatBytes(this.getMemoryUsage()));
+        this.set('SYSTEM', 'Active Services', this.trackedServices.size);
     }
 
     /**
@@ -174,6 +180,27 @@ export class DebugOverlay {
         totalStats.totalCharactersSent += stats.totalCharactersSent || 0;
         totalStats.totalCharactersReceived += stats.totalCharactersReceived || 0;
         totalStats.totalRequests += stats.totalRequests || 0;
+    }
+
+    /**
+     * Get current memory usage
+     */
+    getMemoryUsage() {
+        if (window.performance && window.performance.memory) {
+            return window.performance.memory.usedJSHeapSize;
+        }
+        return 0;
+    }
+
+    /**
+     * Format bytes to human readable format
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     toggle() {

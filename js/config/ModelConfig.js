@@ -176,10 +176,12 @@ export class ModelConfig {
      * 切换提供商
      */
     switchProvider(providerId) {
-        if (this.providers[providerId]) {
+        // 检查内置提供商和自定义提供商
+        const provider = this.providers[providerId] || this.customProviders[providerId];
+        if (provider) {
             this.currentProvider = providerId;
             // 切换提供商时，默认选择第一个模型
-            this.currentModel = this.providers[providerId].models[0].id;
+            this.currentModel = provider.models[0].id;
             this.saveConfig();
             return true;
         }

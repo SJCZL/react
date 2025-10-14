@@ -4,7 +4,7 @@
       "name": "现役提示词字段替换模板 0807",
       "description": "这是 https://test.strong365.com/admin/sale/scene-training/ai-practice 的现役提示词模板，生成场景后点击查看提示词，默认的就是这个。删除了英文部分。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "模板内容"
@@ -15,7 +15,7 @@
       "name": "现役提示词 YAML 模板 0807",
       "description": "这是现役提示词模板用到的字段，需要和字段替换模板联用。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "场景结构编辑"
@@ -24,9 +24,9 @@
     },
     {
       "name": "YAML 场景结构样例",
-      "description": "这是填充在「场景配置」窗口中「YAML 编辑器」里的样例文本，定义了场景组织信息的方式。\n\n不包含任何具体内容，需要点击场景配置窗口里的自动填充按钮，输入任意格式的场景信息（比如生产环境的提示词）——或者也可以在动态生成的文本框里手动输入内容。工具会自动按照该模板对信息进行格式化。",
+      "description": "这是填充在「待测试prompt配置」窗口中「YAML 编辑器」里的样例文本，定义了场景组织信息的方式。\n\n不包含任何具体内容，需要点击待测试prompt配置窗口里的自动填充按钮，输入任意格式的场景信息（比如生产环境的提示词）——或者也可以在动态生成的文本框里手动输入内容。工具会自动按照该模板对信息进行格式化。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "场景结构编辑"
@@ -37,7 +37,7 @@
       "name": "YAML 场景结构样例（太保——全流程场景 1 ）",
       "description": "这是 YAML 场景结构样例的已填充版本，供参考。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "场景结构编辑"
@@ -48,7 +48,7 @@
       "name": "提示词模板样例",
       "description": "这是基于「YAML 场景结构样例」中字段的提示词模板样例。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "模板内容"
@@ -57,9 +57,9 @@
     },
     {
       "name": "提示词生成 LLM 上下文信息样例",
-      "description": "这是填充在「场景配置」窗口中「LLM 上下文」的样例。大语言模型会根据该样例生成对话系统提示词。",
+      "description": "这是填充在「待测试prompt配置」窗口中「LLM 上下文」的样例。大语言模型会根据该样例生成对话系统提示词。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "LLM上下文"
@@ -68,9 +68,9 @@
     },
     {
       "name": "提示词生成 LLM 指令样例",
-      "description": "这是填充在「场景配置」窗口中「生成指令」的样例。这条需要和上下文信息样例联用，共同生成对话提示词。",
+      "description": "这是填充在「待测试prompt配置」窗口中「生成指令」的样例。这条需要和上下文信息样例联用，共同生成对话提示词。",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "生成指令"
@@ -81,7 +81,7 @@
       "name": "0811 提示词模板 YAML 样例",
       "description": "https://strong.yuque.com/mu8o3k/pg7l4n/wpesws3sg10k0rny",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "场景结构编辑"
@@ -92,7 +92,7 @@
       "name": "0811 提示词模板 YAML 样例（全能保——张丽）",
       "description": "https://strong.yuque.com/mu8o3k/pg7l4n/wpesws3sg10k0rny",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "场景结构编辑"
@@ -103,7 +103,7 @@
       "name": "0811 提示词模板",
       "description": "https://strong.yuque.com/mu8o3k/pg7l4n/wpesws3sg10k0rny",
       "tabs": [
-        "场景配置"
+        "待测试prompt配置"
       ],
       "textboxes": [
         "模板内容"

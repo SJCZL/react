@@ -111,7 +111,7 @@ export class HelpSystem {
                 <h4>【全局】标签页切换</h4>
                 <ul>
                     <li><kbd>Alt + 1</kbd> —— 切换到 主对话 标签页</li>
-                    <li><kbd>Alt + 2</kbd> —— 切换到 场景配置 标签页</li>
+                    <li><kbd>Alt + 2</kbd> —— 切换到 待测试prompt配置 标签页</li>
                     <li><kbd>Alt + 3</kbd> —— 切换到 并行测试 标签页</li>
                     <li><kbd>Alt + 4</kbd> —— 切换到 预设管理 标签页</li>
                 </ul>
@@ -143,7 +143,7 @@ export class HelpSystem {
             </div>
             
             <div class="help-section">
-                <h4>场景配置界面</h4>
+                <h4>待测试prompt配置界面</h4>
                     <li><kbd>Spacebar</kbd> —— 回到上方</li>
                     <h5>YAML 编辑器</h5>
                     <ul>
