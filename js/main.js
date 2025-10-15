@@ -6,10 +6,17 @@ import HelpSystem from './HelpSystem.js';
 import { PresetUIManager } from './preset-manager/PresetUIManager.js';
 import { modelConfig } from './config/ModelConfig.js';
 import { modelConfigUI } from './config/ModelConfigUI.js';
+import { MODEL_NAME } from './config.js';
 // 引入测试脚本
 import './config/quick-test.js';
 
+// Debug logging for main.js initialization
+console.log('[DEBUG main.js] main.js starting to load');
+
+// ... existing imports ...
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[DEBUG main.js] DOMContentLoaded fired');
     initializeUI();
 
     // 初始化模型配置
@@ -26,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 确保modelConfig在全局可用，供Chat类使用
     window.modelConfig = modelConfig;
     console.log('🔧 ModelConfig loaded:', modelConfig.getCurrentProvider().name);
+    console.log('[DEBUG main.js] ModelConfig loaded, current provider:', modelConfig.getCurrentProvider()?.name);
     
     // Initialize the PresetUIManager
     const presetUIManager = new PresetUIManager();
@@ -54,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the main chat instance for the UI
     // 从模型配置系统获取初始参数
     const initialModelName = modelConfig.currentModel || MODEL_NAME;
+    console.log('[DEBUG main.js] Initial model name from modelConfig:', initialModelName);
     const initialTemperature = 0.3; // 默认温度值
     const initialTopP = 0.97; // 默认top_p值
 
@@ -83,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
         assistantRegexMatchInputId: 'assistant-regex-match-input',
         userRegexMatchInputId: 'user-regex-match-input',
     });
+
+    console.log('[DEBUG main.js] Chat instance created successfully');
 
     // 模型参数现在由模型配置面板统一管理
     // 不再需要直接监听侧边栏输入框的变化
