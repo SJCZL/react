@@ -574,7 +574,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    border: 1px solid #ccc;
+    border: none;
     border-radius: 8px;
     background: #fff;
     cursor: pointer;
@@ -599,11 +599,11 @@ body {
     left: 0;
     right: 0;
     background: #fff;
-    border: 1px solid #ccc;
-    border-top: 0;
+    border: none;
     border-radius: 0 0 8px 8px;
     z-index: 10;
     display: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .custom-select.open .custom-options {

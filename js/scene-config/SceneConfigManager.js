@@ -742,6 +742,12 @@ ${systemPrompt}
         // 清空现有选项
         selectElement.innerHTML = '';
 
+        // 清空自定义选择器的选项容器
+        const customOptionsContainer = document.getElementById('prompt-gen-provider-options');
+        if (customOptionsContainer) {
+            customOptionsContainer.innerHTML = '';
+        }
+
         providers.forEach(provider => {
             const option = document.createElement('option');
             option.value = provider.id;
@@ -871,6 +877,8 @@ ${systemPrompt}
             if (window.modelConfig.switchProvider(providerId)) {
                 this.populatePromptGenModelOptions();
                 this.updateLLMGeneratorModel();
+                // 触发自定义事件通知其他组件
+                document.dispatchEvent(new CustomEvent('modelConfigChanged'));
             }
         });
 
@@ -878,6 +886,8 @@ ${systemPrompt}
         newModelSelect.addEventListener('change', (e) => {
             console.log(`[SceneConfigManager] Prompt gen model changed: ${e.target.value}`);
             this.updateLLMGeneratorModel();
+            // 触发自定义事件通知其他组件
+            document.dispatchEvent(new CustomEvent('modelConfigChanged'));
         });
     }
 
@@ -944,14 +954,12 @@ ${systemPrompt}
             return;
         }
 
-        // 清除可能已存在的事件监听器
+        // 清除可能已存在的事件监听器 - 只克隆触发器和选项，保留原有的select元素
         const newTrigger = trigger.cloneNode(true);
         const newOptions = options.cloneNode(true);
-        const newNativeSelect = nativeSelect.cloneNode(true);
 
         trigger.parentNode.replaceChild(newTrigger, trigger);
         options.parentNode.replaceChild(newOptions, options);
-        nativeSelect.parentNode.replaceChild(newNativeSelect, nativeSelect);
 
         console.log(`[SceneConfigManager] Setting up custom select for ${triggerId}`);
 
@@ -991,8 +999,8 @@ ${systemPrompt}
             const span = newTrigger.querySelector('span');
             if (span) span.textContent = option.textContent;
 
-            // 更新隐藏的select元素值
-            newNativeSelect.value = value;
+            // 更新原有的select元素值（不要克隆它）
+            nativeSelect.value = value;
 
             // 关闭选择器
             const customSelect = newTrigger.closest('.custom-select');
@@ -1001,8 +1009,8 @@ ${systemPrompt}
                 console.log(`[SceneConfigManager] Closed ${triggerId} after selection`);
             }
 
-            // 触发change事件
-            newNativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            // 触发原有的select元素的change事件
+            nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         // 点击外部关闭选择器

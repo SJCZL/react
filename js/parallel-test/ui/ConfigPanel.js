@@ -599,29 +599,35 @@ function initializeProviderModelSelectors(type) {
 }
 
 function populateProviderOptionsForPT(selectElement, type) {
-   if (!selectElement || !window.modelConfig) return;
+    if (!selectElement || !window.modelConfig) return;
 
-   const providers = window.modelConfig.getProviders();
-   const currentProvider = window.modelConfig.getCurrentProvider();
+    const providers = window.modelConfig.getProviders();
+    const currentProvider = window.modelConfig.getCurrentProvider();
 
-   // 清空现有选项
-   selectElement.innerHTML = '';
+    // 清空现有选项
+    selectElement.innerHTML = '';
 
-   providers.forEach(provider => {
-     const option = document.createElement('option');
-     option.value = provider.id;
-     option.textContent = provider.name;
-     if (provider.id === window.modelConfig.currentProvider) {
-       option.selected = true;
-     }
-     selectElement.appendChild(option);
+    // 清空自定义选择器的选项容器
+    const customOptionsContainer = document.getElementById(`pt-${type}-provider-options`);
+    if (customOptionsContainer) {
+        customOptionsContainer.innerHTML = '';
+    }
 
-     // 添加自定义选择器选项
-     addCustomSelectOption(`pt-${type}-provider-options`, provider.id, provider.name, provider.id === window.modelConfig.currentProvider);
-   });
+    providers.forEach(provider => {
+      const option = document.createElement('option');
+      option.value = provider.id;
+      option.textContent = provider.name;
+      if (provider.id === window.modelConfig.currentProvider) {
+        option.selected = true;
+      }
+      selectElement.appendChild(option);
 
-   // 更新自定义选择器显示
-   updateCustomSelectTrigger(`pt-${type}-provider-trigger`, currentProvider ? currentProvider.name : '选择服务商');
+      // 添加自定义选择器选项
+      addCustomSelectOption(`pt-${type}-provider-options`, provider.id, provider.name, provider.id === window.modelConfig.currentProvider);
+    });
+
+    // 更新自定义选择器显示
+    updateCustomSelectTrigger(`pt-${type}-provider-trigger`, currentProvider ? currentProvider.name : '选择服务商');
 }
 
 function populateModelOptionsForPT(selectElement, type) {
