@@ -209,7 +209,7 @@ function ScenarioConfig({ modelConfig }) {
     };
 
     return (
-        <div id="scenario-tab" className="tab-content active">
+        <>
             <div id="scenario-container">
                 {/* YAML编辑器和映射方式区域 */}
                 <div className="top-section-container">
@@ -651,7 +651,7 @@ function ScenarioConfig({ modelConfig }) {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }
 

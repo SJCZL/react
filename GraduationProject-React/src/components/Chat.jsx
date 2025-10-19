@@ -343,7 +343,7 @@ function Chat({ modelConfig }) {
     const { buttonText, buttonClass } = updateSendButtonState();
 
     return (
-        <div id="chat-tab" className="tab-content active">
+        <>
             <div
                 id="chat-view"
                 className={isToolbarVisible ? 'toolbar-visible' : ''}
@@ -544,7 +544,7 @@ function Chat({ modelConfig }) {
                     {buttonText}
                 </button>
             </div>
-        </div>
+        </>
     );
 }
 
