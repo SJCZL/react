@@ -14,7 +14,7 @@ function HelpSystem({ onClose }) {
     }, [onClose]);
 
     return (
-        <div id="help-popup" className="help-popup">
+        <div id="help-popup" className="help-popup show">
             <div className="help-popup-content">
                 <div className="help-popup-header">
                     <h3>快捷键和操作技巧</h3>
