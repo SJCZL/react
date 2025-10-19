@@ -49,6 +49,11 @@ function ScenarioConfig({ modelConfig }) {
         setYamlText(generateYamlText(defaultYamlData));
     }, []);
 
+    // 同步预览区域的场景信息为当前YAML文本
+    useEffect(() => {
+        setGeneratedSceneInfo(yamlText);
+    }, [yamlText]);
+
     const generateYamlText = (data) => {
         // 简单的YAML生成（实际项目中会使用js-yaml库）
         let yaml = '';
@@ -541,7 +546,23 @@ function ScenarioConfig({ modelConfig }) {
                                 <div className="preview-header">
                                     <span>生成的系统提示：</span>
                                     <div className="preview-actions">
-                                        <button className="copy-btn">复制</button>
+                                        <button
+                                            className="copy-btn"
+                                            onClick={async () => {
+                                                try {
+                                                    await navigator.clipboard.writeText(generatedPrompt || '');
+                                                    alert('已复制到剪贴板');
+                                                } catch (e) {
+                                                    const ta = document.createElement('textarea');
+                                                    ta.value = generatedPrompt || '';
+                                                    document.body.appendChild(ta);
+                                                    ta.select();
+                                                    document.execCommand('copy');
+                                                    document.body.removeChild(ta);
+                                                    alert('已复制到剪贴板');
+                                                }
+                                            }}
+                                        >复制</button>
                                         <button className="apply-btn" onClick={handleApplyToChat}>
                                             应用到主对话
                                         </button>
@@ -563,7 +584,23 @@ function ScenarioConfig({ modelConfig }) {
                                 <div className="preview-header">
                                     <span>场景信息：</span>
                                     <div className="preview-actions">
-                                        <button className="copy-btn">复制</button>
+                                        <button
+                                            className="copy-btn"
+                                            onClick={async () => {
+                                                try {
+                                                    await navigator.clipboard.writeText(generatedSceneInfo || '');
+                                                    alert('已复制到剪贴板');
+                                                } catch (e) {
+                                                    const ta = document.createElement('textarea');
+                                                    ta.value = generatedSceneInfo || '';
+                                                    document.body.appendChild(ta);
+                                                    ta.select();
+                                                    document.execCommand('copy');
+                                                    document.body.removeChild(ta);
+                                                    alert('已复制到剪贴板');
+                                                }
+                                            }}
+                                        >复制</button>
                                     </div>
                                 </div>
                                 <div className="preview-content">
