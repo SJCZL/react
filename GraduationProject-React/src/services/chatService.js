@@ -3,8 +3,13 @@ import { DEFAULT_INITIAL_RESPONSE, DEFAULT_RESPONSE_PROMPT } from '../config/con
 
 export class ChatService {
     constructor(apiKey, modelName, modelConfig) {
-        this.apiService = new ApiService(apiKey, modelName);
+        // Ensure ApiService is initialized with the correct provider and modelConfig
         this.modelConfig = modelConfig;
+        this.apiService = new ApiService(
+            apiKey,
+            modelConfig?.currentProvider,
+            modelConfig
+        );
         this.conversation = [];
         this.systemPrompt = '';
         this.isGenerating = false;
@@ -43,8 +48,8 @@ export class ChatService {
 
     updateModelConfig(modelConfig) {
         this.modelConfig = modelConfig;
+        this.apiService.updateModelConfig(modelConfig);
         this.apiService.updateApiKey(modelConfig.getApiKeyForProvider(modelConfig.currentProvider));
-        this.apiService.updateProvider(modelConfig.currentProvider);
     }
 
     async fetchBotResponse(conversation, temperature, topP, onChunk, onFirstChunk, signal) {
@@ -59,7 +64,8 @@ export class ChatService {
             const response = await this.apiService.sendMessage(messages, this.modelConfig?.currentModel, {
                 temperature,
                 top_p: topP,
-                stream: true
+                stream: true,
+                signal
             });
 
             if (!response.success) {
