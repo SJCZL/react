@@ -1,32 +1,24 @@
-# 🚀 提示词结构演示与测试平台
+# 🚀 AI对话系统测试平台
 
-一个先进的基于 Web 的提示词工程演示和测试平台，专注于对话系统、待测试prompt配置、多模型并行测试和智能评估。支持全球主流AI模型，提供企业级的提示词工程解决方案。
+一个先进的基于Web的AI对话系统测试平台，专注于提示词工程、多模型并行测试和智能评估。支持全球主流AI模型，提供企业级的对话系统测试解决方案。
 
-## 🌟 项目特色
-
-### 🔥 最新功能
-- **🎯 多模型支持**：集成全球主流AI模型（GPT-5、Claude Opus 4、Gemini 2.5、Qwen3、通义千问等）
-- **⚡ 实时并行测试**：批量执行对话测试，支持实时流式输出和智能评估
-- **🎨 智能待测试prompt配置**：支持YAML配置、模板替换、LLM生成等多种场景创建方式
-- **📊 深度分析评估**：多维度对话质量分析，包括心理、销售、质量等专业评估
-- **🎪 动态模型切换**：实时切换AI服务商和模型，无缝集成体验
-- **📋 预设管理系统**：丰富的提示词模板库，支持导入导出和复用
-
-## 🎯 核心功能
+## 🌟 核心功能
 
 ### 1. 🗨️ 主对话系统
 - **实时对话**：与多种AI模型进行实时对话交流
-- **自动响应**：基于规则的智能自动回复机制
+- **自动响应机制**：基于规则的智能自动回复系统
 - **流式输出**：实时显示AI模型的思考和输出过程
 - **消息管理**：强大的消息选择、复制、分析功能
+- **对话控制**：支持连续响应模式和自定义结束条件
 
-### 2. 🎭 待测试prompt配置系统
+### 2. 🎭 场景配置系统
 - **YAML编辑器**：可视化YAML配置编辑，支持语法高亮
 - **多生成模式**：
-  - 模板替换生成
-  - LLM智能生成
-  - 直接输出生成
+  - 模板替换生成：基于预定义模板快速生成场景
+  - LLM智能生成：利用AI模型自动创建场景内容
+  - 直接输出生成：支持自定义格式的直接输出
 - **场景预览**：实时预览生成的场景效果
+- **自动填充**：智能字段填充功能，简化配置过程
 
 ### 3. ⚡ 并行测试系统
 - **批量测试**：同时运行多个对话测试场景
@@ -88,20 +80,20 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    🚀 前端界面层 (Vue-like架构)                    │
+│                    🚀 前端界面层                               │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────┐  │
-│  │ 主对话界面   │  │ 待测试prompt配置界面 │  │ 并行测试界面 │  │ 模型配置 │  │
+│  │ 主对话界面   │  │ 场景配置界面 │  │ 并行测试界面 │  │ 模型配置 │  │
 │  │             │  │             │  │             │  │          │  │
 │  │ • 实时对话   │  │ • YAML编辑  │  │ • 批量测试  │  │ • 多模型 │  │
 │  │ • 流式输出  │  │ • 多生成器  │  │ • 实时监控  │  │ • API管理│  │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └──────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────────┐
-│                 🎯 业务逻辑层 (模块化设计)                       │
+│                 🎯 业务逻辑层                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────┐  │
-│  │ 核心服务    │  │ 待测试prompt配置    │  │ 并行测试    │  │ 分析引擎 │  │
+│  │ 核心服务    │  │ 场景配置    │  │ 并行测试    │  │ 分析引擎 │  │
 │  │             │  │             │  │             │  │          │  │
 │  │ • ChatService│  │ • SceneConfig│  │ • TaskOrch  │  │ • 心理分析│  │
 │  │ • ApiService │  │ • YamlEditor │  │ • Assessment│  │ • 质量评估│  │
@@ -127,8 +119,8 @@
 - **MessageSelectionManager**：高级消息选择和管理功能
 - **实时流式输出**：支持实时显示AI模型思考过程
 
-#### 2. 🎭 待测试prompt配置系统 (`js/scene-config/`)
-- **SceneConfigManager**：待测试prompt配置主管理器，协调整个配置流程
+#### 2. 🎭 场景配置系统 (`js/scene-config/`)
+- **SceneConfigManager**：场景配置主管理器，协调整个配置流程
 - **YamlEditorManager**：专业的YAML配置编辑器，支持语法高亮和验证
 - **多生成模式**：
   - **TemplateSubstitutionGenerator**：基于模板的智能替换生成
@@ -156,14 +148,6 @@
 - **多服务商集成**：统一管理不同AI服务商的API密钥和参数
 - **实时切换机制**：无缝切换不同的AI模型和服务商
 
-### 🔄 数据流程
-
-```
-用户操作 → 事件捕获 → 业务逻辑处理 → 多模型API调用 → 流式响应处理 → 实时UI更新 → 结果存储分析
-     ↑                                                                      ↓
-     └────────────────── 错误处理和重试机制 ←──────────────────────────────┘
-```
-
 ## 🚀 快速开始
 
 ### 📋 系统要求
@@ -180,7 +164,7 @@
 ```bash
 # 克隆项目
 git clone <repository-url>
-cd prompt-structure-demo
+cd GraduationProject
 
 # 启动本地服务器（Python 3）
 python -m http.server 8000
@@ -199,235 +183,178 @@ python -m SimpleHTTPServer 8000
 npm install -g http-server
 
 # 启动服务器
-http-server -p 8000 -c-1
+http-server -p 8000
 
-# 访问应用：http://localhost:8000
+# 访问应用
+# 打开浏览器访问：http://localhost:8000
 ```
 
-#### 🐳 方法三：Docker容器化部署
+#### 🌐 方法三：PHP部署
 
 ```bash
-# 构建镜像
-docker build -t prompt-demo -f Dockerfile .
+# 启动PHP内置服务器
+php -S localhost:8000
 
-# 运行容器
-docker run -d -p 8000:80 --name prompt-demo prompt-demo
-
-# 访问应用：http://localhost:8000
+# 访问应用
+# 打开浏览器访问：http://localhost:8000
 ```
 
-#### ☁️ 方法四：云端部署（推荐生产环境）
+### 🔧 初始配置
 
-- **Vercel**：零配置部署，支持按需扩展
-- **Netlify**：静态站点托管，内置CDN加速
-- **Railway**：支持Docker容器，免费额度充足
-- **Render**：全托管平台，支持静态站点和Docker
+1. **获取API密钥**：
+   - 注册至少一个支持的AI服务商账号
+   - 获取相应的API密钥
+
+2. **配置模型**：
+   - 点击界面右上角的"⚙️ 模型设置"按钮
+   - 选择服务商并输入API密钥
+   - 选择默认模型并调整参数
+
+3. **开始使用**：
+   - 在主对话界面与AI模型进行对话
+   - 在场景配置界面创建测试场景
+   - 在并行测试界面进行批量测试
+   - 查看分析报告获取深度洞察
 
 ## 📖 使用指南
 
-### 🎯 初次使用
+### 主对话系统使用
 
-1. **访问应用**
-   ```bash
-   # 启动服务器后，打开浏览器访问
-   http://localhost:8000
-   ```
+1. **基础对话**：
+   - 在消息输入框中输入内容
+   - 按Enter或点击发送按钮发送消息
+   - AI模型将实时响应并显示流式输出
 
-2. **配置API密钥**
-   - 点击右上角的 🤖 模型配置按钮
-   - 选择您偏好的AI服务商（推荐：通义千问）
-   - 输入您的API密钥
-   - 点击"测试连接"验证配置
+2. **自动响应模式**：
+   - 启用"启用自动响应"开关
+   - 设置初始响应和响应提示
+   - 系统将自动模拟对话双方
 
-3. **开始对话**
-   - 在主对话界面输入您想说的话
-   - 系统将自动调用配置的AI模型
-   - 享受流式响应体验
+3. **连续响应模式**：
+   - 在自动响应基础上启用"启用连续响应"
+   - 设置结束条件（轮次限制或正则匹配）
+   - 系统将持续生成对话直到满足结束条件
 
-### 🎨 核心功能使用
+### 场景配置系统使用
 
-#### 多模型切换
-1. 点击 🤖 模型配置按钮
-2. 在弹出的面板中选择不同服务商
-3. 浏览并选择您需要的模型
-4. 系统自动应用新配置
+1. **YAML配置**：
+   - 在YAML编辑器中编辑场景配置
+   - 使用语法高亮和验证功能确保配置正确
 
-#### 并行测试
-1. 切换到"并行测试"标签页
-2. 点击 ➕ 按钮创建新测试任务
-3. 观看实时测试进度和结果
-4. 查看详细的评估报告
+2. **生成模式选择**：
+   - **模板替换**：使用预定义模板和变量
+   - **LLM生成**：让AI模型根据上下文生成场景
+   - **直接输出**：直接输入场景内容
 
-#### 待测试prompt配置
-1. 切换到"待测试prompt配置"标签页
-2. 在YAML编辑器中编写待测试prompt配置
-3. 使用多种生成模式创建内容
-4. 预览和保存配置结果
+3. **场景预览与应用**：
+   - 点击"生成提示词"按钮预览场景
+   - 使用"复制"或"应用"按钮使用生成的场景
 
-#### 智能分析
-1. 在对话界面勾选消息进行分析
-2. 点击分析按钮查看详细评估
-3. 浏览心理、销售、质量等多维度分析结果
+### 并行测试系统使用
 
-### 🔧 高级配置
+1. **创建测试任务**：
+   - 配置测试参数和场景
+   - 设置测试数量和并发限制
 
-#### 添加自定义模型
-```javascript
-// 在ModelConfig.js中添加新的服务商
-customProviders: {
-    'my-api': {
-        name: '我的AI服务',
-        models: [
-            { id: 'my-model', name: '我的模型', maxTokens: 8000 }
-        ],
-        baseUrl: 'https://my-api.com',
-        endpoint: '/v1/chat/completions',
-        authType: 'bearer'
-    }
-}
-```
+2. **监控测试进度**：
+   - 实时查看测试进度和状态
+   - 观察流式输出和结果生成
 
-#### 自定义评估规则
-```javascript
-// 在mistakes.json中添加新的评估规则
-{
-    "name": "我的评估规则",
-    "severity": "warning",
-    "type": "自定义类型",
-    "description": "规则描述",
-    "examples": ["示例1", "示例2"]
-}
-```
+3. **分析测试结果**：
+   - 查看自动评估和评分结果
+   - 导出CSV格式数据进行进一步分析
 
-## 🌟 项目特色
+## 🎯 高级功能
 
-### 🔥 技术亮点
+### 自定义分析模型
 
-- **🎯 多模型架构**：创新的多服务商统一管理架构，支持实时切换
-- **⚡ 高性能并行**：优化的异步处理机制，支持多任务并发执行
-- **🎨 现代化UI**：响应式设计，支持深色模式，操作流畅自然
-- **📊 智能评估**：先进的对话质量评估算法，多维度分析体系
-- **🔧 易于扩展**：模块化设计，轻松添加新的AI模型和服务商
-- **💾 数据持久化**：自动保存配置和测试结果，支持导出多种格式
+1. **配置分析模型**：
+   - 在主对话界面的分析设置部分
+   - 为不同类型的分析选择专门的模型
+   - 调整分析温度和参数
 
-### 🚀 性能优势
+2. **多维度分析**：
+   - 心理分析：评估客户心理状态和情绪
+   - 质量分析：检查对话质量和合规性
+   - 销售分析：评估销售技巧和效果
 
-| 特性 | 本平台 | 传统方案 |
-|------|--------|----------|
-| 模型切换 | ⚡ 实时无缝 | 🔄 需要重启 |
-| 并行测试 | 🎯 智能调度 | 📊 简单队列 |
-| 多模型支持 | 🌟 25+ 模型 | 📝 少数固定 |
-| 评估深度 | 🎨 多维度 | 📋 单维度 |
-| 用户体验 | 🎪 现代化 | 📱 传统界面 |
+### 预设管理系统
 
-### 📈 使用场景
+1. **使用预设**：
+   - 在预设管理界面浏览可用预设
+   - 一键应用预设配置到当前会话
 
-#### 企业应用
-- **提示词工程**：开发和测试企业级对话系统
-- **客服培训**：模拟客户对话，提升服务质量
-- **销售训练**：优化销售话术和技巧
-- **产品测试**：验证AI助手的交互体验
+2. **创建和管理预设**：
+   - 保存当前配置为自定义预设
+   - 编辑、删除和导出预设
 
-#### 个人使用
-- **学习研究**：探索不同AI模型的特点和能力
-- **内容创作**：利用多种模型生成创意内容
-- **效率提升**：批量测试和评估提示词效果
-- **技术验证**：验证不同模型在特定场景下的表现
+### 调试和开发工具
+
+1. **调试覆盖层**：
+   - 按F12或点击调试按钮打开调试面板
+   - 查看API调用、性能指标和错误日志
+
+2. **开发者控制台**：
+   - 使用浏览器开发者工具进行深度调试
+   - 查看网络请求和JavaScript控制台输出
+
+## 🔧 故障排除
+
+### 常见问题
+
+1. **API密钥错误**：
+   - 确保API密钥正确且有效
+   - 检查服务商和模型是否匹配
+
+2. **网络连接问题**：
+   - 确保网络连接稳定
+   - 检查防火墙和代理设置
+
+3. **模型响应慢**：
+   - 尝试切换到更快的模型
+   - 调整温度和top_p参数
+
+4. **分析功能不工作**：
+   - 确保已配置分析模型
+   - 检查API密钥权限
+
+### 性能优化
+
+1. **浏览器性能**：
+   - 使用最新版Chrome或Firefox
+   - 关闭不必要的浏览器扩展
+
+2. **API调用优化**：
+   - 合理设置请求频率限制
+   - 使用流式输出减少等待时间
 
 ## 🤝 贡献指南
 
-欢迎社区贡献！无论是bug修复、功能增强还是文档改进，我们都非常欢迎。
+我们欢迎社区贡献！请遵循以下步骤：
 
-### 📝 贡献方式
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
 
-1. **Fork项目** 到您的GitHub账户
-2. **创建特性分支**：`git checkout -b feature/amazing-feature`
-3. **提交更改**：`git commit -m 'Add amazing feature'`
-4. **推送分支**：`git push origin feature/amazing-feature`
-5. **提交Pull Request**
+## 📄 许可证
 
-### 🐛 问题报告
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-如果您发现bug或有改进建议，请：
+## 🙏 致谢
 
-1. 查看现有的 [Issues](../../issues)
-2. 如果没有相关issue，请创建一个新的issue
-3. 详细描述问题，包括复现步骤和环境信息
+- 感谢所有AI服务商提供的强大API
+- 感谢开源社区的支持和贡献
+- 特别感谢所有测试用户提供的宝贵反馈
 
-### 🔧 开发环境设置
+## 📞 联系我们
 
-```bash
-# 克隆项目
-git clone <repository-url>
-cd prompt-structure-demo
+如有问题或建议，请通过以下方式联系：
 
-# 启动开发服务器
-python -m http.server 8000
-
-# 运行测试（如果有）
-npm test
-```
-
-### 📋 代码规范
-
-- 使用ES6+现代JavaScript语法
-- 遵循模块化开发原则
-- 添加适当的注释和文档
-- 确保代码的可读性和可维护性
-
-## 📄 开源协议
-
-本项目采用 **MIT License** 开源协议。
-
-```
-MIT License
-
-Copyright (c) 2024 提示词结构演示平台
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-## 👥 作者与致谢
-
-### 核心开发者
-- **项目维护者**：您的名字
-- **技术顾问**：AI助手团队
-
-### 特别致谢
-- 感谢所有开源AI模型和服务商提供的优秀技术支持
-- 感谢开源社区的宝贵贡献和建议
-- 感谢测试用户提出的宝贵反馈
-
-### 🌐 相关链接
-- **项目主页**：[GitHub Repository]
-- **问题反馈**：[Issues](../../issues)
-- **功能请求**：[Discussions](../../discussions)
-- **贡献指南**：[CONTRIBUTING.md]
+- 提交 Issue: [GitHub Issues](https://github.com/your-repo/issues)
+- 邮箱: your-email@example.com
 
 ---
 
-<div align="center">
-
-**⭐ 如果这个项目对你有帮助，请给个 Star！**
-
-[![Star History Chart](https://api.star-history.com/svg?repos=username/repo&type=Date)](https://star-history.com/#username/repo&Date)
-
-*Built with ❤️ for the AI community*
-
-</div>
+**⭐ 如果这个项目对您有帮助，请给我们一个星标！**

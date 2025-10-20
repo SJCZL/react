@@ -1,5 +1,8 @@
+import { apiManager } from '../api-manager.js';
+
 /**
  * PresetManager - Manages the preset library for text templates
+ * Now supports both local (default) and remote (API) storage
  */
 export class PresetManager {
     constructor() {
@@ -27,6 +30,7 @@ export class PresetManager {
                 '自动回复提示': 'pt-auto-response'
             }
         };
+        this.isOnline = false; // 标记是否使用API模式
         this.init();
     }
 
@@ -46,7 +50,47 @@ export class PresetManager {
     }
 
     async init() {
-        await this.loadDefaultPresets();
+        // 首先尝试从API加载用户提示词
+        try {
+            await this.loadUserPromptsFromAPI();
+            this.isOnline = true;
+        } catch (error) {
+            console.warn('API不可用，回退到本地模式:', error.message);
+            // 如果API不可用，加载默认预设
+            await this.loadDefaultPresets();
+            this.isOnline = false;
+        }
+
+        // 如果是API模式且用户没有预设数据，才导入默认预设
+        if (this.isOnline && this.presets.length === 0) {
+            console.log('用户没有预设数据，新用户可以手动添加自己的预设');
+            // 注释掉自动导入，让新用户从空白开始
+            // await this.importDefaultPresetsToUser();
+        }
+    }
+
+    async loadUserPromptsFromAPI() {
+        try {
+            const response = await apiManager.getUserPrompts();
+            const apiPresets = response.data.prompts || [];
+
+            // 将API数据转换为前端格式
+            this.presets = apiPresets.map(p => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                tabs: Array.isArray(p.tabs) ? p.tabs : [],
+                textboxes: Array.isArray(p.textboxes) ? p.textboxes : [],
+                text: p.text,
+                created_at: p.created_at,
+                updated_at: p.updated_at
+            }));
+
+            this.applyFilters();
+            console.log(`从API加载了 ${this.presets.length} 个用户提示词`);
+        } catch (error) {
+            throw error;
+        }
     }
 
     async loadDefaultPresets() {
@@ -134,43 +178,183 @@ export class PresetManager {
         return Array.from(textBoxes);
     }
 
-    addPreset(preset) {
+    async addPreset(preset) {
         const normalized = this.normalizePreset(preset);
-        // Check if preset with same name already exists
-        const existingIndex = this.presets.findIndex(p => p.name === normalized.name);
-        if (existingIndex !== -1) {
-            this.presets[existingIndex] = normalized;
+
+        if (this.isOnline) {
+            try {
+                // API模式：保存到后端
+                const apiData = {
+                    name: normalized.name,
+                    description: normalized.description,
+                    tabs: normalized.tabs,
+                    textboxes: normalized.textboxes,
+                    text: normalized.text
+                };
+
+                const response = await apiManager.createPrompt(apiData);
+                const createdPreset = response.data.prompt;
+
+                // 更新本地缓存
+                const localPreset = {
+                    id: createdPreset.id,
+                    name: createdPreset.name,
+                    description: createdPreset.description,
+                    tabs: createdPreset.tabs,
+                    textboxes: createdPreset.textboxes,
+                    text: createdPreset.text,
+                    created_at: createdPreset.created_at,
+                    updated_at: createdPreset.updated_at
+                };
+
+                // 检查是否已存在
+                const existingIndex = this.presets.findIndex(p => p.name === localPreset.name);
+                if (existingIndex !== -1) {
+                    this.presets[existingIndex] = localPreset;
+                } else {
+                    this.presets.push(localPreset);
+                }
+
+                this.applyFilters();
+                return true;
+            } catch (error) {
+                console.error('保存提示词到API失败:', error);
+                return false;
+            }
         } else {
-            this.presets.push(normalized);
+            // 本地模式：原有逻辑
+            const existingIndex = this.presets.findIndex(p => p.name === normalized.name);
+            if (existingIndex !== -1) {
+                this.presets[existingIndex] = normalized;
+            } else {
+                this.presets.push(normalized);
+            }
+            this.applyFilters();
+            return true;
         }
-        this.applyFilters();
     }
 
-    deletePreset(name) {
-        this.presets = this.presets.filter(preset => preset.name !== name);
-        this.applyFilters();
+    async deletePreset(name) {
+        if (this.isOnline) {
+            try {
+                // 找到对应的提示词ID
+                const preset = this.presets.find(p => p.name === name);
+                if (!preset || !preset.id) {
+                    throw new Error('提示词不存在或缺少ID');
+                }
+
+                await apiManager.deletePrompt(preset.id);
+                // 从本地缓存中移除
+                this.presets = this.presets.filter(p => p.name !== name);
+                this.applyFilters();
+                return true;
+            } catch (error) {
+                console.error('从API删除提示词失败:', error);
+                return false;
+            }
+        } else {
+            // 本地模式
+            this.presets = this.presets.filter(preset => preset.name !== name);
+            this.applyFilters();
+            return true;
+        }
     }
 
-    exportPresets() {
-        return JSON.stringify({
-            presets: this.presets,
-            exportDate: new Date().toISOString(),
-            version: '1.0'
-        }, null, 2);
+    async exportPresets() {
+        if (this.isOnline) {
+            try {
+                const response = await apiManager.exportPrompts();
+                return JSON.stringify(response.data, null, 2);
+            } catch (error) {
+                console.error('从API导出提示词失败:', error);
+                // 回退到本地数据
+                return JSON.stringify({
+                    presets: this.presets.map(p => ({
+                        name: p.name,
+                        description: p.description,
+                        tabs: p.tabs,
+                        textboxes: p.textboxes,
+                        text: p.text
+                    })),
+                    exportDate: new Date().toISOString(),
+                    version: '1.0'
+                }, null, 2);
+            }
+        } else {
+            return JSON.stringify({
+                presets: this.presets,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            }, null, 2);
+        }
     }
 
-    importPresets(jsonString) {
+    async importPresets(jsonString) {
         try {
             const data = JSON.parse(jsonString);
             if (data.presets && Array.isArray(data.presets)) {
-                this.presets = data.presets.map(p => this.normalizePreset(p));
-                this.applyFilters();
-                return true;
+                if (this.isOnline) {
+                    try {
+                        await apiManager.importPrompts(data.presets);
+                        // 重新加载用户提示词
+                        await this.loadUserPromptsFromAPI();
+                        return true;
+                    } catch (error) {
+                        console.error('导入提示词到API失败:', error);
+                        return false;
+                    }
+                } else {
+                    // 本地模式
+                    this.presets = data.presets.map(p => this.normalizePreset(p));
+                    this.applyFilters();
+                    return true;
+                }
             }
             return false;
         } catch (error) {
             console.error('Failed to import presets:', error);
             return false;
+        }
+    }
+
+    // 刷新API数据
+    async refreshFromAPI() {
+        if (this.isOnline) {
+            await this.loadUserPromptsFromAPI();
+        }
+    }
+
+    // 导入默认预设到用户账户
+    async importDefaultPresetsToUser() {
+        try {
+            // 加载默认预设
+            const response = await fetch('js/preset-manager/presets/default.json');
+            const data = await response.json();
+            const defaultPresets = data.presets || [];
+
+            console.log(`导入 ${defaultPresets.length} 个默认预设到用户账户...`);
+
+            // 逐个导入到API
+            for (const preset of defaultPresets) {
+                try {
+                    await apiManager.createPrompt({
+                        name: preset.name,
+                        description: preset.description || '',
+                        tabs: preset.tabs || [],
+                        textboxes: preset.textboxes || [],
+                        text: preset.text || ''
+                    });
+                    console.log(`✓ 导入预设: ${preset.name}`);
+                } catch (error) {
+                    console.warn(`导入预设失败 ${preset.name}:`, error.message);
+                }
+            }
+
+            // 重新加载用户预设
+            await this.loadUserPromptsFromAPI();
+            console.log('默认预设导入完成');
+        } catch (error) {
+            console.error('导入默认预设失败:', error);
         }
     }
 

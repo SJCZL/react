@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试登录页面</title>
+</head>
+<body>
+    <h1>测试登录页面</h1>
+    <form id="login-form">
+        <div>
+            <label for="login-username">用户名:</label>
+            <input type="text" id="login-username" value="wss37" required>
+        </div>
+        <div>
+            <label for="login-password">密码:</label>
+            <input type="password" id="login-password" value="w123456" required>
+        </div>
+        <button type="submit">登录</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script type="module">
+        // 模拟auth-manager.js的逻辑
+        class TestAuthManager {
+            constructor() {
+                this.apiBaseUrl = 'http://localhost:3001/api';
+            }
+
+            async makeAuthRequest(endpoint, options = {}) {
+                const url = `${this.apiBaseUrl}${endpoint}`;
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+
+                const config = {
+                    ...options,
+                    headers
+                };
+
+                console.log('Making request to:', url);
+                console.log('Request config:', config);
+
+                try {
+                    const response = await fetch(url, config);
+                    console.log('Response status:', response.status);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+                        throw new Error(errorData.message || `HTTP ${response.status}`);
+                    }
+
+                    return response;
+                } catch (error) {
+                    console.error('Request error:', error);
+                    throw error;
+                }
+            }
+
+            async login(credentials) {
+                console.log('Login credentials:', credentials);
+
+                const response = await this.makeAuthRequest('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify(credentials)
+                });
+
+                const data = await response.json();
+                console.log('Login response data:', data);
+                return data;
+            }
+        }
+
+        // 登录管理器
+        class TestLoginManager {
+            constructor() {
+                this.loginForm = document.getElementById('login-form');
+                this.messageElement = document.getElementById('message');
+                this.authManager = new TestAuthManager();
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+
+                console.log('=== LOGIN ATTEMPT ===');
+                console.log('Raw username:', document.getElementById('login-username').value);
+                console.log('Raw password:', document.getElementById('login-password').value);
+                console.log('Trimmed username:', username);
+                console.log('Trimmed password:', password);
+                console.log('Username length:', username.length);
+                console.log('Password length:', password.length);
+
+                if (!username || !password) {
+                    this.showMessage('请输入用户名和密码', 'error');
+                    return;
+                }
+
+                try {
+                    const result = await this.authManager.login({ username, password });
+                    this.showMessage('登录成功！', 'success');
+                    console.log('Success result:', result);
+                } catch (error) {
+                    console.error('Login failed:', error);
+                    this.showMessage(`登录失败: ${error.message}`, 'error');
+                }
+            }
+
+            showMessage(message, type) {
+                this.messageElement.textContent = message;
+                this.messageElement.className = type;
+                this.messageElement.style.display = 'block';
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new TestLoginManager();
+        });
+    </script>
+
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        form { margin-bottom: 20px; }
+        div { margin: 10px 0; }
+        input { padding: 5px; margin-left: 10px; }
+        button { padding: 8px 16px; margin-top: 10px; }
+        #message { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</body>
+</html>

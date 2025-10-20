@@ -7,16 +7,33 @@ import { PresetUIManager } from './preset-manager/PresetUIManager.js';
 import { modelConfig } from './config/ModelConfig.js';
 import { modelConfigUI } from './config/ModelConfigUI.js';
 import { MODEL_NAME } from './config.js';
+import { authManager } from './auth-manager.js';
 // 引入测试脚本
 import './config/quick-test.js';
 
 // Debug logging for main.js initialization
 console.log('[DEBUG main.js] main.js starting to load');
 
-// ... existing imports ...
+// 认证检查和重定向
+function initAuthCheck() {
+    if (!authManager.isAuthenticated()) {
+        console.log('[main.js] User not authenticated, redirecting to login');
+        window.location.href = '/login.html';
+        return false;
+    }
+    return true;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[DEBUG main.js] DOMContentLoaded fired');
+
+    // 检查用户是否已登录
+    if (!initAuthCheck()) {
+        return; // 如果未登录，已重定向到登录页
+    }
+
+    // 添加用户界面元素
+    addUserInterface();
     initializeUI();
 
     // 初始化模型配置
@@ -161,7 +178,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             console.log('[main.js] Registered API services with debug overlay');
+                }
+            }, 1000); // Wait for services to be initialized
+        });
+        
+        // 添加用户界面相关功能
+        function addUserInterface() {
+            const header = document.getElementById('header');
+            if (header) {
+                // 添加用户信息显示区域
+                const userInfo = document.createElement('div');
+                userInfo.id = 'user-info';
+                userInfo.innerHTML = `
+                    <span id="user-display-name">${authManager.getCurrentUser()?.username || '未知用户'}</span>
+                    <button id="logout-btn" title="登出">登出</button>
+                `;
+                header.appendChild(userInfo);
+        
+                // 绑定登出事件
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => {
+                        if (confirm('确定要登出吗？')) {
+                            authManager.logout();
+                        }
+                    });
+                }
+            }
         }
-    }, 1000); // Wait for services to be initialized
-});
 

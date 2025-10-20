@@ -1,0 +1,20 @@
+{
+  "name": "graduationproject",
+  "version": "1.0.0",
+  "description": "一个先进的基于Web的AI对话系统测试平台，专注于提示词工程、多模型并行测试和智能评估。支持全球主流AI模型，提供企业级的对话系统测试解决方案。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SJCZL/GraduationProject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SJCZL/GraduationProject/issues"
+  },
+  "homepage": "https://github.com/SJCZL/GraduationProject#readme"
+}
