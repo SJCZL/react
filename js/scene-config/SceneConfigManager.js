@@ -130,6 +130,14 @@ export class SceneConfigManager {
             });
         }
 
+        // Save Current Prompt button
+        const saveCurrentPromptButton = document.getElementById('save-current-prompt-button');
+        if (saveCurrentPromptButton) {
+            saveCurrentPromptButton.addEventListener('click', (e) => {
+                this.saveCurrentPromptToDatabase();
+            });
+        }
+
         // Template input
         const templateInput = document.getElementById('template-input');
         if (templateInput) {
@@ -1382,5 +1390,75 @@ ${userRequest}
 3. 确保返回的是纯YAML格式，不要包含任何解释文字以及额外内容
 4. 保持适当的缩进和格式
 5. 如果某些字段我没有提供具体信息，请保持原样或填充合理的默认值`;
+    }
+
+    /**
+     * Save the current generated prompt to the database as a user preset
+     */
+    async saveCurrentPromptToDatabase() {
+        try {
+            // Get the current generated prompt
+            const currentPrompt = document.getElementById('generated-prompt')?.value?.trim();
+
+            if (!currentPrompt) {
+                alert('没有可保存的系统提示词。请先生成系统提示词。');
+                return;
+            }
+
+            // Generate a default name based on current date/time and generator type
+            const now = new Date();
+            const timestamp = now.toISOString().slice(0, 19).replace(/[:-]/g, '');
+            const generatorType = this.getGeneratorType();
+            const generatorName = {
+                'template': '模板替换',
+                'llm': 'LLM生成',
+                'direct': '直接输出'
+            }[generatorType] || '未知';
+
+            const defaultName = `系统提示词_${generatorName}_${timestamp}`;
+
+            // Ask user for custom name
+            const promptName = prompt('请输入预设名称：', defaultName);
+            if (!promptName || promptName.trim() === '') {
+                alert('预设名称不能为空');
+                return;
+            }
+
+            // Ask user for description
+            const promptDescription = prompt('请输入预设描述（可选）：', '') || '';
+
+            // Prepare the preset data
+            const presetData = {
+                name: promptName.trim(),
+                description: promptDescription.trim(),
+                tabs: ['待测试prompt配置'], // Generated in scene config tab
+                textboxes: ['模板内容'], // Apply to template content textbox
+                text: currentPrompt
+            };
+
+            // Check if apiManager is available
+            if (!window.apiManager) {
+                alert('API管理器不可用，请检查网络连接');
+                return;
+            }
+
+            // Save to database via API
+            const response = await window.apiManager.createPrompt(presetData);
+
+            if (response.success) {
+                alert(`系统提示词已成功保存到数据库！\n预设名称: ${promptName}`);
+
+                // Optionally refresh the preset manager to show the new preset
+                if (window.presetUIManager && window.presetUIManager.presetManager) {
+                    window.presetUIManager.presetManager.refreshFromAPI();
+                }
+            } else {
+                alert(`保存失败: ${response.message || '未知错误'}`);
+            }
+
+        } catch (error) {
+            console.error('保存系统提示词失败:', error);
+            alert(`保存失败: ${error.message || '网络错误，请稍后重试'}`);
+        }
     }
 }

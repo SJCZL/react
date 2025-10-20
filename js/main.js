@@ -8,6 +8,10 @@ import { modelConfig } from './config/ModelConfig.js';
 import { modelConfigUI } from './config/ModelConfigUI.js';
 import { MODEL_NAME } from './config.js';
 import { authManager } from './auth-manager.js';
+import { apiManager } from './api-manager.js';
+
+// Make apiManager globally accessible
+window.apiManager = apiManager;
 // 引入测试脚本
 import './config/quick-test.js';
 

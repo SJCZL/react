@@ -58,11 +58,11 @@ export class LLMGenerator extends PromptGenerator {
         
         // Create the prompt for the LLM
         const systemPrompt = this.createLLMPrompt(fieldsText);
-        
-        // Create a simple conversation with just the system message
+
+        // Create a simple conversation with system prompt as system message and user content as user message
         const messages = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: '请生成系统提示。' }
+            { role: 'system', content: '你是一个专业的AI提示词优化专家。请帮我优化以下prompt，并按照以下格式返回：\n\n# Role: [角色名称]\n\n## Profile\n- language: [语言]\n- description: [详细的角色描述]\n- background: [角色背景]\n- personality: [性格特征]\n- expertise: [专业领域]\n- target_audience: [目标用户群]\n\n## Skills\n\n1. [核心技能类别]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n\n2. [辅助技能类别]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n   - [具体技能]: [简要说明]\n\n## Rules\n\n1. [基本原则]：\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n\n2. [行为准则]：\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n   - [具体规则]: [详细说明]\n\n3. [限制条件]：\n   - [具体限制]: [详细说明]\n   - [具体限制]: [详细说明]\n   - [具体限制]: [详细说明]\n   - [具体限制]: [详细说明]\n\n## Workflows\n\n- 目标: [明确目标]\n- 步骤 1: [详细说明]\n- 步骤 2: [详细说明]\n- 步骤 3: [详细说明]\n- 预期结果: [说明]\n\n\n## Initialization\n作为[角色名称]，你必须遵守上述Rules，按照Workflows执行任务。\n\n\n请基于以上模板，优化并扩展以下prompt，确保内容专业、完整且结构清晰，注意不要携带任何引导词或解释，不要使用代码块包围：' },
+            { role: 'user', content: this.context || '' }
         ];
 
         try {
@@ -171,20 +171,18 @@ export class LLMGenerator extends PromptGenerator {
      */
     createLLMPrompt(fieldsText) {
         let prompt = '';
-        
+
         if (this.context) {
             prompt += `${this.context}\n\n`;
         }
-        
+
         prompt += `字段信息：\n${fieldsText}\n\n`;
-        
+
         if (this.instruction) {
             prompt += `${this.instruction}\n\n`;
         }
-        
-        prompt += '请基于以上信息生成一个清晰、具体的系统提示。确保生成的提示包含所有必要的信息，并且格式清晰。';
-        
-        return prompt;
+
+        return prompt.trim();
     }
 
     /**
