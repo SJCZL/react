@@ -55,6 +55,27 @@ document.addEventListener('DOMContentLoaded', () => {
     window.modelConfig = modelConfig;
     console.log('🔧 ModelConfig loaded:', modelConfig.getCurrentProvider().name);
     console.log('[DEBUG main.js] ModelConfig loaded, current provider:', modelConfig.getCurrentProvider()?.name);
+
+    // 登录后重新加载API密钥到模型配置
+    if (authManager.isAuthenticated()) {
+        console.log('🔄 用户已登录，重新加载API密钥到模型配置...');
+        console.log('👤 当前用户信息:', {
+            id: authManager.getCurrentUser()?.id,
+            username: authManager.getCurrentUser()?.username
+        });
+        setTimeout(async () => {
+            try {
+                await modelConfig.loadApiKeysFromBackend();
+                console.log('✅ API密钥已从数据库加载到模型配置');
+                console.log('🔍 检查加载结果:');
+                console.log('  - aliyun:', modelConfig.getApiKeyForProvider('aliyun') ? '有' : '无');
+                console.log('  - openai:', modelConfig.getApiKeyForProvider('openai') ? '有' : '无');
+                console.log('  - claude:', modelConfig.getApiKeyForProvider('claude') ? '有' : '无');
+            } catch (error) {
+                console.error('❌ 从数据库加载API密钥失败:', error);
+            }
+        }, 100); // 延迟执行，确保DOM完全加载
+    }
     
     // Initialize the PresetUIManager
     const presetUIManager = new PresetUIManager();

@@ -351,8 +351,8 @@ export class ModelConfigUI {
 
         // 当前服务商API密钥输入
         const apiKeyInput = this.container.querySelector('#model-api-key');
-        apiKeyInput.addEventListener('input', (e) => {
-            modelConfig.setApiKeyForProvider(modelConfig.currentProvider, e.target.value);
+        apiKeyInput.addEventListener('input', async (e) => {
+            await modelConfig.setApiKeyForProvider(modelConfig.currentProvider, e.target.value);
             this.updateKeyStatus();
             // 触发模型配置变化事件，通知其他组件（如并行测试）
             document.dispatchEvent(new CustomEvent('modelConfigChanged'));
@@ -368,10 +368,10 @@ export class ModelConfigUI {
 
         // 所有提供商密钥输入事件
         const keysGrid = this.container.querySelector('#keys-grid');
-        keysGrid.addEventListener('input', (e) => {
+        keysGrid.addEventListener('input', async (e) => {
             if (e.target.type === 'password' && e.target.dataset.provider) {
                 const providerId = e.target.dataset.provider;
-                modelConfig.setApiKeyForProvider(providerId, e.target.value);
+                await modelConfig.setApiKeyForProvider(providerId, e.target.value);
                 this.updateKeyStatus();
                 // 触发模型配置变化事件，通知其他组件（如并行测试）
                 document.dispatchEvent(new CustomEvent('modelConfigChanged'));

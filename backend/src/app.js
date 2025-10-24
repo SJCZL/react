@@ -6,6 +6,7 @@ import { testConnection } from './config/database.js';
 // 路由
 import authRoutes from './routes/auth.js';
 import promptRoutes from './routes/prompts.js';
+import apiKeyRoutes from './routes/api-keys.js';
 
 // 加载环境变量
 dotenv.config();
@@ -31,6 +32,7 @@ app.use((req, res, next) => {
 // 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/prompts', promptRoutes);
+app.use('/api/api-keys', apiKeyRoutes);
 
 // 健康检查路由
 app.get('/health', (req, res) => {
@@ -73,6 +75,7 @@ const startServer = async () => {
       console.log(`📊 健康检查: http://localhost:${PORT}/health`);
       console.log(`🔐 认证API: http://localhost:${PORT}/api/auth`);
       console.log(`📝 提示词API: http://localhost:${PORT}/api/prompts`);
+      console.log(`🔑 API密钥API: http://localhost:${PORT}/api/api-keys`);
     });
   } catch (error) {
     console.error('服务器启动失败:', error);

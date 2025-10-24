@@ -168,6 +168,20 @@ export class AuthManager {
         console.log('Success response body:', responseText);
         const data = JSON.parse(responseText);
         this.setAuth(data.data.token, data.data.user);
+
+        // 登录成功后，通知ModelConfig重新加载API密钥
+        if (window.modelConfig) {
+            console.log('🔄 登录成功，重新加载API密钥...');
+            try {
+                await window.modelConfig.loadApiKeysFromBackend();
+                console.log('✅ 登录后API密钥重新加载完成');
+            } catch (error) {
+                console.error('❌ 登录后重新加载API密钥失败:', error);
+            }
+        } else {
+            console.warn('⚠️ window.modelConfig不存在，跳过API密钥加载');
+        }
+
         return data;
     }
 
@@ -230,6 +244,69 @@ export class AuthManager {
             this.clearAuth();
             return false;
         }
+    }
+
+    /**
+     * 获取用户的API密钥列表
+     */
+    async getApiKeys() {
+        const response = await this.makeAuthRequest('/api-keys');
+
+        if (!response.ok) {
+            throw new Error('获取API密钥失败');
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
+    /**
+     * 获取指定提供商的API密钥
+     */
+    async getApiKey(provider) {
+        const response = await this.makeAuthRequest(`/api-keys/${provider}`);
+
+        if (!response.ok) {
+            throw new Error('获取API密钥失败');
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
+    /**
+     * 保存API密钥
+     */
+    async saveApiKey(provider, apiKey) {
+        const response = await this.makeAuthRequest('/api-keys', {
+            method: 'POST',
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '保存API密钥失败' }));
+            throw new Error(errorData.message || '保存API密钥失败');
+        }
+
+        const data = await response.json();
+        return data;
+    }
+
+    /**
+     * 删除API密钥
+     */
+    async deleteApiKey(provider) {
+        const response = await this.makeAuthRequest(`/api-keys/${provider}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '删除API密钥失败' }));
+            throw new Error(errorData.message || '删除API密钥失败');
+        }
+
+        const data = await response.json();
+        return data;
     }
 }
 

@@ -54,12 +54,21 @@ export const register = [
       const hashedPassword = await bcrypt.hash(password, 12);
 
       // 创建用户
+      console.log('🔧 准备插入用户数据:', { username, email, hashedPassword: '[HASHED]' });
       const [result] = await pool.execute(
         'INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, NOW())',
         [username, email, hashedPassword]
       );
 
       const userId = result.insertId;
+      console.log('✅ 用户插入成功，获取的用户ID:', userId);
+
+      // 验证用户是否成功插入
+      const [verifyUser] = await pool.execute(
+        'SELECT id, username, email FROM users WHERE id = ?',
+        [userId]
+      );
+      console.log('🔍 验证插入结果:', verifyUser[0]);
 
       // 生成JWT令牌
       const token = generateToken({

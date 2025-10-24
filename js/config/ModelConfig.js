@@ -2,18 +2,27 @@
  * 模型配置管理器 - 支持多家AI服务商
  * 支持的提供商：OpenAI、Anthropic、百度、腾讯、阿里云、智谱AI等
  */
+import { authManager } from '../auth-manager.js';
 export class ModelConfig {
     constructor() {
         this.currentProvider = 'aliyun'; // 默认使用阿里云
         this.currentModel = 'qwen3-max'; // 更新为新的默认模型
-        this.apiKeys = {}; // 每个提供商独立的API密钥
+        this.apiKeys = {}; // 每个提供商独立的API密钥（已废弃，仅用于向后兼容）
         this.customProviders = {}; // 用户自定义的服务商
+        this.backendApiKeys = {}; // 从后端加载的API密钥
 
         // 初始化提供商配置
         this.providers = this.initializeProviders();
 
-        // 加载保存的配置
-        this.loadSavedConfig();
+        // 不再加载本地缓存的API密钥
+        // this.loadSavedConfig();
+
+        // 如果用户已登录，从后端加载API密钥
+        if (authManager.isAuthenticated()) {
+            this.loadApiKeysFromBackend().catch(error => {
+                console.error('初始化时加载API密钥失败:', error);
+            });
+        }
     }
 
     /**
@@ -161,15 +170,27 @@ export class ModelConfig {
      * 获取指定提供商的API密钥
      */
     getApiKeyForProvider(providerId) {
-        return this.apiKeys[providerId] || '';
+        // 仅使用后端存储的API密钥，不再使用本地缓存
+        return this.backendApiKeys[providerId] || '';
     }
 
     /**
      * 设置指定提供商的API密钥
      */
-    setApiKeyForProvider(providerId, apiKey) {
-        this.apiKeys[providerId] = apiKey;
-        this.saveConfig();
+    async setApiKeyForProvider(providerId, apiKey) {
+        try {
+            // 如果用户已登录，保存到后端
+            if (authManager.isAuthenticated()) {
+                await authManager.saveApiKey(providerId, apiKey);
+                this.backendApiKeys[providerId] = apiKey;
+            } else {
+                // 未登录时不保存任何地方（已废弃本地缓存）
+                console.warn('未登录状态下无法保存API密钥');
+            }
+        } catch (error) {
+            console.error('保存API密钥失败:', error);
+            throw error;
+        }
     }
 
     /**
@@ -334,6 +355,45 @@ export class ModelConfig {
         this.apiKeys = {};
         this.customProviders = {};
         this.saveConfig();
+    }
+
+    /**
+     * 从后端加载API密钥
+     */
+    async loadApiKeysFromBackend() {
+        try {
+            console.log('🔄 开始从后端加载API密钥...');
+            console.log('👤 当前用户:', authManager.getCurrentUser());
+            this.backendApiKeys = {};
+
+            // 为每个提供商分别获取API密钥
+            const providers = Object.keys(this.providers);
+            console.log('📋 需要加载的提供商:', providers);
+
+            for (const provider of providers) {
+                try {
+                    console.log(`🔍 正在加载 ${provider} 的API密钥...`);
+                    const response = await authManager.getApiKey(provider);
+                    console.log(`📡 ${provider} API响应:`, response);
+
+                    if (response.success && response.data && response.data.api_key) {
+                        this.backendApiKeys[provider] = response.data.api_key;
+                        console.log(`✅ 加载API密钥: ${provider} -> ${response.data.api_key.substring(0, 10)}...`);
+                    } else {
+                        console.log(`⚠️ ${provider} 的API密钥不存在或为空`);
+                    }
+                } catch (error) {
+                    console.warn(`❌ 加载 ${provider} API密钥失败:`, error.message);
+                }
+            }
+
+            console.log('🎉 成功从后端加载API密钥，共', Object.keys(this.backendApiKeys).length, '个');
+            console.log('🔑 当前backendApiKeys:', Object.keys(this.backendApiKeys));
+        } catch (error) {
+            console.error('❌ 从后端加载API密钥失败:', error);
+            console.error('详细错误:', error.message);
+            this.backendApiKeys = {}; // 清空
+        }
     }
 
     /**

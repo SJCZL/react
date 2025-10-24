@@ -45,7 +45,15 @@ async function initDatabase() {
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
 
     console.log('⚡ 执行数据库迁移...');
-    await connection.query(migrationSQL);
+    try {
+      await connection.query(migrationSQL);
+    } catch (error) {
+      if (error.code === 'ER_DUP_KEYNAME') {
+        console.log('ℹ️ 索引已存在，跳过创建');
+      } else {
+        throw error;
+      }
+    }
 
     console.log('✅ 数据库初始化完成！');
 
@@ -96,9 +104,23 @@ CREATE TABLE IF NOT EXISTS user_prompts (
   UNIQUE KEY unique_user_prompt (user_id, name)
 );
 
+-- 用户API密钥表
+CREATE TABLE IF NOT EXISTS user_api_keys (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  provider VARCHAR(50) NOT NULL,
+  api_key VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_user_provider (user_id, provider)
+);
+
 -- 创建索引以提高查询性能
 CREATE INDEX idx_user_prompts_user_id ON user_prompts(user_id);
 CREATE INDEX idx_user_prompts_updated_at ON user_prompts(updated_at);
+CREATE INDEX idx_user_api_keys_user_id ON user_api_keys(user_id);
+CREATE INDEX idx_user_api_keys_provider ON user_api_keys(provider);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 `;
