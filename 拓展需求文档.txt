@@ -1,646 +1,129 @@
-﻿
 
 ---
 
-# 鍔熻兘寮€鍙戦渶姹傛枃妗?v1
+# 功能开发需求文档 v1
 
-**妯″潡鍚?*锛氶璁撅紙绯荤粺鎻愮ず璇嶏級鈫?娴嬭瘯缁撴灉瀛樻。涓庡彲瑙嗗寲
-**鐩爣**锛?
-
-* 鍦?*棰勮璇︽儏椤靛彸渚?*鏂板涓€涓€屾祴璇曠粨鏋溿€嶅尯鍩?
-* 鏀寔**涓€閿苟琛屾祴璇?*锛堟部鐢ㄧ幇鏈夛級銆?*鎵嬪姩淇濆瓨鏈娴嬭瘯缁撴灉**鍒版暟鎹簱
-* 缁熻缁村害锛?*鎸夋ā鍨嬪垎缁?*锛堟祴璇曟鏁般€侀€氳繃/澶辫触鏁般€侀€氳繃鐜囷級銆?*閿欒绫诲瀷鍒嗗竷**
-* 鍥捐〃锛?*妯″瀷瀵规瘮鏌辩姸鍥?*銆?*閿欒绫诲瀷鍒嗗竷楗煎浘**锛圗Charts锛?
-* 鏀寔**鍘嗗彶璁板綍鍒楄〃**涓?*CSV 瀵煎嚭**锛堢敤浜庤鏂囨彃鍥?鏁版嵁锛?
+**模块**：预设（系统提示词）— 测试结果存档与可视化  
+**目标**：
+- 在预设详情页右侧新增「测试结果」区域
+- 支持一键并行测试（沿用现有逻辑）与手动保存本次测试结果到数据库
+- 统计维度：按模型分布（次数、通过/失败、通过率）、错误类型分布
+- 图表：模型对比柱状图、严重度堆叠柱状图、错误类型饼图（ECharts）
+- 支持历史记录列表与 CSV 导出（论文/报告截图用）
 
 ---
 
-## 1. 椤甸潰涓庝氦浜掞紙鍓嶇锛?
+## 1. 页面与交互（前端）
 
-**浣嶇疆**锛氶璁剧鐞嗗櫒锛圥reset Manager锛夊彸渚ц鎯呴潰鏉跨殑涓嬫柟锛堜綘鎴浘鏍囨敞鍖哄煙锛?
+**位置**：预设管理器右侧详情面板下方。
 
-### 1.1 UI 缁撴瀯锛圚TML 鐗囨锛?
-
-```html
+### 1.1 UI 结构（示例）
+```
 <section id="preset-test-results" class="card">
   <header class="card-header">
-    <h3>馃搳 娴嬭瘯缁撴灉锛堟寜妯″瀷缁熻锛?/h3>
+    <h3>📊 测试结果（按模型统计）</h3>
     <div class="actions">
-      <button id="btn-run-parallel-test">杩愯骞惰娴嬭瘯</button>
-      <button id="btn-save-current-result" disabled>淇濆瓨鏈娴嬭瘯缁撴灉</button>
-      <button id="btn-export-csv" disabled>瀵煎嚭CSV</button>
+      <button id="btn-run-parallel-test">运行并行测试</button>
+      <button id="btn-save-current-result" disabled>保存本次测试结果</button>
+      <button id="btn-export-csv" disabled>导出CSV</button>
     </div>
   </header>
 
   <div class="stats-summary">
-    <!-- 鐢熸垚锛氭€绘牱鏈暟銆佹ā鍨嬫暟銆佹暣浣撻€氳繃鐜?-->
-    <div><b>鎬绘祴璇曠敤渚嬶細</b><span id="sum-total">-</span></div>
-    <div><b>鍙備笌妯″瀷锛?/b><span id="sum-models">-</span></div>
-    <div><b>鏁翠綋閫氳繃鐜囷細</b><span id="sum-pass-rate">-</span></div>
+    <div><b>总测试用例：</b><span id="sum-total">-</span></div>
+    <div><b>参与模型：</b><span id="sum-models">-</span></div>
+    <div><b>整体通过率：</b><span id="sum-pass-rate">-</span></div>
   </div>
 
   <div class="charts">
     <div id="chart-model-compare" style="width:100%;height:280px;"></div>
+    <div id="chart-severity-stacked" style="width:100%;height:280px;margin-top:12px;"></div>
     <div id="chart-error-pie" style="width:100%;height:280px;margin-top:12px;"></div>
   </div>
 
+  <div class="top-errors">
+    <label for="top-errors-model"><b>Top 错误类型（按模型）：</b></label>
+    <select id="top-errors-model"></select>
+    <div id="top-errors-table"></div>
+  </div>
+
   <div class="history">
-    <h4>鍘嗗彶娴嬭瘯璁板綍</h4>
+    <h4>历史测试记录</h4>
     <ul id="history-list"></ul>
   </div>
 </section>
 ```
 
-### 1.2 浜や簰娴佺▼
-
-1. 閫夋嫨鏌愪釜棰勮锛堢郴缁熸彁绀鸿瘝锛夆啋 鍙充晶璇︽儏灞曠ず
-2. 鐐瑰嚮銆岃繍琛屽苟琛屾祴璇曘€嶁啋 璋冪敤**鐜版湁骞惰娴嬭瘯閫昏緫**锛屾嬁鍒版湰娆?`results[]`
-3. 鍓嶇鍦ㄥ唴瀛樹腑瀵?`results` 鍋?*鎸夋ā鍨嬭仛鍚堢粺璁?* 鈫?娓叉煋鍥捐〃涓庢憳瑕?鈫?**鈥滀繚瀛樻湰娆℃祴璇曠粨鏋溾€濇寜閽彉涓哄彲鐐瑰嚮**
-4. 鐐瑰嚮銆屼繚瀛樻湰娆℃祴璇曠粨鏋溿€嶁啋 POST 鍒板悗绔繚瀛橈紙鍙瓨**缁熻缁撴灉 JSON**涓庡厓淇℃伅锛?
-5. 淇濆瓨鎴愬姛鍚庯細鍒锋柊銆屽巻鍙叉祴璇曡褰曘€嶅垪琛紱**鍚敤鈥滃鍑篊SV鈥?*鎸夐挳
-6. 鐐瑰嚮銆屽鍑篊SV銆嶁啋 瀵煎嚭鎸夋ā鍨嬭仛鍚堝悗鐨勭粺璁＄粨鏋滐紙鐢ㄤ簬璁烘枃锛?
+### 1.2 交互流程
+1) 选择预设 → 右侧详情显示。  
+2) 点击「运行并行测试」→ 复用现有并行测试逻辑获得 `results[]`。  
+3) 前端聚合 `results`，更新摘要/图表，启用「保存本次测试结果」。  
+4) 点击「保存本次测试结果」→ POST 数据库（只存统计 JSON 与元信息）。  
+5) 保存成功后刷新历史列表，启用「导出CSV」。  
+6) 点击「导出CSV」→ 导出聚合后的统计结果。
 
 ---
 
-## 2. 鏁版嵁缁熻閫昏緫锛堝墠绔仛鍚堬級
+## 2. 数据统计逻辑（前端聚合）
 
-**杈撳叆锛堢ず渚嬶級**锛氭部鐢ㄥ苟琛屾祴璇曡繑鍥炵殑鏁扮粍锛堟瘡鏉′唬琛ㄦ煇妯″瀷涓€娆℃牱渚嬶級
-
+输入示例（沿用并行测试返回，每条代表模型的一次样例）：
 ```js
 [
-  {
-    preset_id: 12,
-    model: "deepseek-chat",
-    sample_id: "s-001",
-    errors: ["瑙掕壊杩濆亸绂?],      // 鏃犻敊璇垯绌烘暟缁?
-    score: 0.9,                 // 鍙€?
-    latency_ms: 2300            // 鍙€?
-  },
-  {
-    preset_id: 12,
-    model: "qwen-max",
-    sample_id: "s-001",
-    errors: []
-  }
-  // ...
+  { preset_id: 12, model: "deepseek-chat", sample_id: "s-001", errors: ["角色违偏"], score: 0.9, latency_ms: 2300 },
+  { preset_id: 12, model: "qwen-max", sample_id: "s-001", errors: [] }
 ]
 ```
 
-**鑱氬悎杈撳嚭锛堢敤浜庡彲瑙嗗寲涓庝繚瀛橈級**锛?
-
+输出示例（用于可视化与保存）：
 ```js
 {
   meta: {
     preset_id: 12,
     models_tested: ["deepseek-chat","qwen-max"],
-    total_samples: 40,  // 鎵€鏈夋ā鍨嬫牱鏈眰鍜?
+    total_samples: 40,
     created_at: "2025-10-28T17:25:00+09:00"
   },
   statistics: {
     "deepseek-chat": {
-      total: 20,
-      pass: 16,
-      fail: 4,
-      passRate: 80, // 0-100
-      errors: { "瑙掕壊杩濆亸绂?: 2, "杈撳嚭涓嶅畬鏁?: 1, "閫昏緫閿欒": 1 }
+      total: 20, pass: 16, fail: 4, passRate: 80,
+      errors: { "角色违偏": 2, "输出不完整": 1, "逻辑错误": 1 }
     },
     "qwen-max": {
-      total: 20,
-      pass: 18,
-      fail: 2,
-      passRate: 90,
-      errors: { "鏍煎紡閿欒": 1, "璇箟涓嶇": 1 }
+      total: 20, pass: 18, fail: 2, passRate: 90,
+      errors: { "格式错误": 1, "语义不符": 1 }
     }
   }
 }
 ```
 
-**鑱氬悎鍑芥暟锛堝彲鐩存帴璐村叆 `js/parallel-test/analyzer.js`锛?*锛?
-
-```js
-export function analyzeResultsByModel(results, presetId) {
-  const stats = {};
-  let total = 0;
-  const errorName = x => (x || '').trim();
-
-  for (const item of results) {
-    const model = item.model || 'unknown';
-    if (!stats[model]) {
-      stats[model] = { total: 0, pass: 0, fail: 0, errors: {} };
-    }
-    stats[model].total += 1;
-    total += 1;
-
-    const errs = Array.isArray(item.errors) ? item.errors : [];
-    if (errs.length === 0) {
-      stats[model].pass += 1;
-    } else {
-      stats[model].fail += 1;
-      for (const e of errs) {
-        const key = errorName(e) || '鍏朵粬';
-        stats[model].errors[key] = (stats[model].errors[key] || 0) + 1;
-      }
-    }
-  }
-
-  // 璁＄畻閫氳繃鐜?
-  Object.values(stats).forEach(s => {
-    s.passRate = s.total ? Math.round((s.pass / s.total) * 100) : 0;
-  });
-
-  return {
-    meta: {
-      preset_id: presetId,
-      models_tested: Object.keys(stats),
-      total_samples: total,
-      created_at: new Date().toISOString()
-    },
-    statistics: stats
-  };
-}
-```
+聚合函数放置：`js/parallel-test/analyzer.js`（已含 CSV 导出与 ECharts 渲染）。
 
 ---
 
-## 11. 鏁版嵁妯″瀷涓庣储寮?
-琛細`experiment_results`
+## 3. 后端接口
+- 已有：`POST /api/experiments` 保存统计结果；`GET /api/experiments?preset_id=...` 拉取历史。  
+- 新增/已有：`/api/test-runs` 系列（如有需要）用于新版并行运行流水。  
+- 鉴权：沿用 JWT 中间件，仅允许当前登录用户访问自己的数据。
 
-- 涓婚敭锛歚id` 鑷
-- 澶栭敭锛歚preset_id` 鈫?棰勮琛紙濡傚瓨鍦級锛屽彲閫?`user_id`
-- 绱㈠紩锛?  - `idx_preset_created_at (preset_id, created_at DESC)` 鐢ㄤ簬鍘嗗彶鍒楄〃鍊掑簭
-  - `idx_models_gin (models)` 濡備娇鐢?JSON 鏁扮粍涓旀暟鎹簱鏀寔 GIN/JSON 绱㈠紩锛圥ostgreSQL锛?- 绾︽潫锛?  - `pass + fail = total`锛堝彲鍦ㄤ繚瀛樻椂鏍￠獙锛屾暟鎹簱浣跨敤 CHECK 绾︽潫鍙€夛級
-  - `passRate BETWEEN 0 AND 100`锛堜繚瀛樺墠璁＄畻濉厖锛?
-绀轰緥锛圫QLite 鍏煎锛夛細
-
-```sql
-CREATE TABLE IF NOT EXISTS experiment_results (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  preset_id INTEGER NOT NULL,
-  models TEXT NOT NULL,          -- JSON 瀛楃涓?  statistics TEXT NOT NULL,      -- JSON 瀛楃涓诧紙鎸夋ā鍨嬶級
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_preset_created_at
-ON experiment_results (preset_id, created_at DESC);
-```
-
-鏁版嵁涓€鑷存€у缓璁細淇濆瓨鍓嶅湪鍚庣閬嶅巻 `statistics` 涓烘瘡涓ā鍨嬭ˉ榻?total/pass/fail/passRate锛屽綊骞剁█鐤忛敊璇负鈥滃叾浠栤€濄€?
-## 12. API 绀轰緥锛堣姹?鍝嶅簲锛?
-- 淇濆瓨锛圥OST `/api/experiments`锛?
-璇锋眰锛?
-```http
-POST /api/experiments HTTP/1.1
-Content-Type: application/json
-Authorization: Bearer <token>
-
-{
-  "preset_id": 12,
-  "models": ["deepseek-chat","qwen-max"],
-  "statistics": {
-    "deepseek-chat": {"total":20,"pass":16,"fail":4,"passRate":80,"errors":{"瑙掕壊杩濆亸":2,"杈撳嚭涓嶅畬鏁?:1,"閫昏緫閿欒":1}},
-    "qwen-max": {"total":20,"pass":18,"fail":2,"passRate":90,"errors":{"鏍煎紡閿欒":1,"璇箟涓嶇":1}}
-  }
-}
-```
-
-鍝嶅簲锛?
-```json
-{ "success": true, "id": 101 }
-```
-
-- 鍘嗗彶锛圙ET `/api/experiments?preset_id=12&limit=10`锛?
-鍝嶅簲锛?
-```json
-{
-  "items": [
-    {"id":101,"preset_id":12,"models":["deepseek-chat","qwen-max"],"created_at":"2025-10-28T17:25:00Z"},
-    {"id":96,"preset_id":12,"models":["deepseek-chat"],"created_at":"2025-10-20T10:00:00Z"}
-  ]
-}
-```
-
-閿欒鐮佺害瀹氾細
-
-- 400 鍙傛暟涓嶅悎娉曪紙缂哄瓧娈?绫诲瀷涓嶇锛?- 401 鏈巿鏉冿紙婕忎紶/杩囨湡 Token锛?- 403 鏃犳潈闄愯闂 preset
-- 500 鍐呴儴閿欒锛堥檮 request-id 渚夸簬杩借釜锛?
-## 13. 鍥捐〃閰嶇疆绀轰緥锛圗Charts锛?
-- 妯″瀷瀵规瘮锛堟煴鐘跺浘锛夛細
-
-```js
-export function optionModelCompare(stats) {
-  const models = Object.keys(stats);
-  const pass = models.map(m => stats[m].pass);
-  const fail = models.map(m => stats[m].fail);
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['閫氳繃','澶辫触'] },
-    xAxis: { type: 'category', data: models },
-    yAxis: { type: 'value' },
-    series: [
-      { name: '閫氳繃', type: 'bar', stack: 'total', data: pass },
-      { name: '澶辫触', type: 'bar', stack: 'total', data: fail }
-    ]
-  };
-}
-```
-
-- 閿欒鍒嗗竷锛堥ゼ鍥撅級锛?
-```js
-export function optionErrorPie(stats) {
-  const errorMap = new Map();
-  for (const m of Object.keys(stats)) {
-    for (const [k,v] of Object.entries(stats[m].errors || {})) {
-      errorMap.set(k, (errorMap.get(k) || 0) + v);
-    }
-  }
-  const data = Array.from(errorMap.entries()).map(([name, value]) => ({ name, value }));
-  return { tooltip: { trigger: 'item' }, legend: { type: 'scroll' }, series: [{ type: 'pie', radius: '60%', data }] };
-}
-```
-
-## 14. CSV 鍒楀畾涔変笌绀轰緥
-
-- 鍒楅『搴忥細`model,total,pass,fail,passRate,errors_json`
-- 绀轰緥锛?
-```csv
-model,total,pass,fail,passRate,errors_json
-deepseek-chat,20,16,4,80,"{""瑙掕壊杩濆亸"":2,""杈撳嚭涓嶅畬鏁?":1,""閫昏緫閿欒"":1}"
-qwen-max,20,18,2,90,"{""鏍煎紡閿欒"":1,""璇箟涓嶇"":1}"
-```
-
-娉ㄦ剰锛氫负閬垮厤 CSV 娉ㄥ叆锛屽墠绔鍑烘椂瀵逛互 `=`, `+`, `-`, `@` 寮€澶寸殑鍗曞厓鏍煎墠缃?`'`銆?
-## 15. 鏈湴鍖栦笌鏃犻殰纰嶏紙i18n/a11y锛?
-- 缁熶竴璇嶆眹琛細閿欒绫诲瀷銆佹寜閽悕绉般€佺粺璁″瓧娈靛湪 `i18n/*.json` 閰嶇疆
-- 鍥捐〃鍔?aria 鎻忚堪锛歚aria: { enabled: true }`
-- 閿洏鍙揪锛氭寜閽?`tabindex` 椤哄簭銆乣aria-pressed/disabled` 鐘舵€佸悓姝?
-## 16. 鎬ц兘涓庡苟鍙?
-- 骞惰娴嬭瘯缁撴灉浠呭湪鍓嶇鍐呭瓨鑱氬悎锛涗繚瀛樻椂浠呬紶缁熻鎽樿锛堜笉涓婁紶鏄庣粏锛?- 鍚庣鎺ュ彛闄愭祦锛氬悓涓€鐢ㄦ埛瀵瑰悓涓€ `preset_id` 10 绉掑唴闄?3 娆?- 鍒楄〃鍒嗛〉锛歚limit` 鏈€澶?50锛岃繑鍥?`next_cursor`锛堝彲鍚庣画鎵╁睍锛?- JSON 鍘嬬缉锛氭湇鍔＄鍚敤 gzip/br锛涘墠绔?`fetch` 鑷姩鍗忓晢
-
-## 17. 寮傚父澶勭悊涓庡洖閫€
-
-- 骞惰娴嬭瘯澶辫触锛氬墠绔彁绀哄苟鍏佽閲嶈瘯锛屼繚鐣欏凡寰楅儴鍒嗙粨鏋滐紙鏍囪涓哄け璐ユ牱鏈級
-- 淇濆瓨澶辫触锛歵oast + 閲嶈瘯鎸夐挳锛屼笉娓呯┖ `currentAgg`
-- 鍥捐〃娓叉煋寮傚父锛氭崟鑾峰苟闄嶇骇涓鸿〃鏍煎睍绀?
-## 18. 鏃ュ織涓庡彲瑙傛祴鎬?
-- 鍚庣锛氫负姣忔淇濆瓨鐢熸垚 `request_id`锛岃褰?`preset_id`, `models_count`, `total`, `duration_ms`
-- 鍓嶇锛氫簨浠跺煁鐐?`test_run`, `save_stats`, `export_csv`锛堜究浜庤鏂囧浘琛ㄥ鐜扮粺璁★級
-
-## 19. 杩佺Щ涓庣瀛愭暟鎹?
-- 鏁版嵁杩佺Щ鑴氭湰骞傜瓑锛屽厑璁搁噸澶嶆墽琛?- 鎻愪緵绀轰緥绉嶅瓙锛堝彲閫夛級锛氫负 `preset_id=demo` 鍐欏叆 2 鏉′笉鍚屾ā鍨嬬殑缁熻锛屼究浜庤仈璋?
-## 20. 鏈潵鎵╁睍
-
-- 瀵规瘮瑙嗚锛氭寜鏁版嵁闆?鏍锋湰鏍囩缁村害瀵规瘮
-- 鏄庣粏閽诲彇锛氱偣鍑绘ā鍨嬫煴鍙睍寮€閿欒鏍锋湰 TopN锛堜笉淇濆瓨鏄庣粏锛屼粎鍗虫椂鏌ヨ锛?- 鍥炲綊璺熻釜锛氬悓涓€ preset 澶氱増鏈紙鐗堟湰鍙?鎻愪氦鍝堝笇锛夎秼鍔挎姌绾垮浘
+表结构示例（已在 `migrations.sql` 中）：`experiment_results` 表存 `user_id/preset_id/models/statistics/json`。
 
 ---
 
-闄勫綍 A锛歄penAPI 鎽樿锛堢墖娈碉級
-
-```yaml
-openapi: 3.0.0
-paths:
-  /api/experiments:
-    post:
-      security: [{ bearerAuth: [] }]
-      requestBody: { required: true }
-      responses: { '200': { description: OK } }
-    get:
-      parameters:
-        - in: query
-          name: preset_id
-          schema: { type: integer }
-        - in: query
-          name: limit
-          schema: { type: integer, maximum: 50 }
-      responses: { '200': { description: OK } }
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-```
-
-闄勫綍 B锛氬墠绔ā鍧楁竻鍗曪紙鍙傝€冿級
-
-- `js/parallel-test/analyzer.js`锛氳仛鍚?鍥捐〃/CSV 瀵煎嚭
-- `js/preset-manager/detail-panel.js`锛氳鎯呴潰鏉挎寕杞戒笌浜嬩欢
-- `js/api-manager.js`锛欸ET/POST 鍖呰銆侀敊璇鐞?
-
-## 3. 鍥捐〃娓叉煋锛圗Charts锛?
-
-**妯″瀷瀵规瘮鏌辩姸鍥?*锛堟í杞翠负妯″瀷锛屽€间负閫氳繃鐜?锛夛細
-
-```js
-import * as echarts from 'echarts';
-
-export function renderModelCompare(domId, statistics) {
-  const models = Object.keys(statistics);
-  const passRates = models.map(m => statistics[m].passRate || 0);
-  const chart = echarts.init(document.getElementById(domId));
-  chart.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: models },
-    yAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%' } },
-    series: [{ type: 'bar', data: passRates, label: { show: true, formatter: '{c}%' } }]
-  });
-  return chart;
-}
-```
-
-**閿欒绫诲瀷鍒嗗竷楗煎浘**锛堝悎骞舵墍鏈夋ā鍨嬬殑閿欒璁℃暟锛夛細
-
-```js
-export function renderErrorPie(domId, statistics) {
-  const errorCounts = {};
-  for (const m of Object.keys(statistics)) {
-    const errs = statistics[m].errors || {};
-    for (const k of Object.keys(errs)) {
-      errorCounts[k] = (errorCounts[k] || 0) + errs[k];
-    }
-  }
-  const data = Object.entries(errorCounts).map(([name, value]) => ({ name, value }));
-  const chart = echarts.init(document.getElementById(domId));
-  chart.setOption({
-    tooltip: { trigger: 'item' },
-    series: [{ type: 'pie', radius: '60%', data, label: { formatter: '{b}: {c} ({d}%)' } }]
-  });
-  return chart;
-}
-```
+## 4. 验收清单
+- [ ] 预设详情页新增「测试结果」区域。  
+- [ ] 运行并行测试后，图表和摘要可视化正常显示。  
+- [ ] 保存结果成功写入数据库，历史列表按时间倒序显示。  
+- [ ] 导出 CSV 含模型、总数、通过/失败、通过率、错误分布 JSON。  
+- [ ] 接口鉴权正常，异常参数返回友好错误。  
+- [ ] 文字/编码均为 UTF-8，无乱码。
 
 ---
 
-## 4. CSV 瀵煎嚭锛堢敤浜庤鏂囷級
-
-**瀵煎嚭褰撳墠鑱氬悎缁熻涓?CSV锛氫竴琛屼竴涓ā鍨?*
-
-```js
-import { toCSV, downloadText } from '../utils/csv.mjs'; // 浣犻」鐩噷宸叉湁绫讳技宸ュ叿
-
-export function exportStatsToCSV(statsObj) {
-  const rows = [];
-  for (const [model, s] of Object.entries(statsObj.statistics)) {
-    rows.push({
-      model,
-      total: s.total,
-      pass: s.pass,
-      fail: s.fail,
-      passRate: s.passRate + '%',
-      errors: JSON.stringify(s.errors || {}) // 淇濈暀鏄庣粏
-    });
-  }
-  const csv = toCSV(rows);
-  downloadText(csv, `preset_${statsObj.meta.preset_id}_test_${Date.now()}.csv`);
-}
-```
-
----
-
-## 5. 鍚庣涓庢暟鎹簱锛堟渶灏忔敼鍔級
-
-### 5.1 鏂板琛紙MySQL 8锛?
-
-鏂囦欢锛歚backend/database/migrations.sql` 杩藉姞锛?
-
-```sql
-CREATE TABLE IF NOT EXISTS experiment_results (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  preset_id BIGINT NOT NULL,
-  models JSON NOT NULL,        -- ["deepseek-chat","qwen-max"]
-  statistics JSON NOT NULL,    -- 鑱氬悎缁撴灉 JSON锛堣涓婃柟缁撴瀯锛?
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_preset_created (preset_id, created_at DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-### 5.2 API 璁捐
-
-* **淇濆瓨**锛歚POST /api/experiments`
-
-  * Request JSON锛?
-
-    ```json
-    {
-      "preset_id": 12,
-      "models": ["deepseek-chat", "qwen-max"],
-      "statistics": { "...": "瑙佸墠绔仛鍚堣緭鍑?statistics 瀵硅薄" }
-    }
-    ```
-  * Response锛?
-
-    ```json
-    { "success": true, "id": 123 }
-    ```
-
-* **鎸夐璁炬煡璇㈠巻鍙?*锛歚GET /api/experiments?preset_id=12&limit=10&offset=0`
-
-  * Response锛?
-
-    ```json
-    {
-      "success": true,
-      "items": [
-        {
-          "id": 123,
-          "preset_id": 12,
-          "models": ["deepseek-chat","qwen-max"],
-          "statistics": { ... },
-          "created_at": "2025-10-28 17:25:00"
-        }
-      ]
-    }
-    ```
-
-* 锛堝彲閫夛級**鍒犻櫎**锛歚DELETE /api/experiments/:id`
-
-### 5.3 鍚庣鏂囦欢鏀瑰姩锛圗SM锛?
-
-* `backend/src/routes/experiments.js`锛堟柊澧炶矾鐢憋級
-* `backend/src/controllers/experimentsController.js`锛堝鐞嗕繚瀛?鏌ヨ锛?
-* `backend/src/app.js` 鎸傝浇璺敱锛歚app.use('/api/experiments', experimentsRouter);`
-
-**璺敱鏍蜂緥锛堢簿绠€锛?*锛?
-
-```js
-// backend/src/routes/experiments.js
-import { Router } from 'express';
-import * as ctrl from '../controllers/experimentsController.js';
-import { authMiddleware } from '../middlewares/auth.js'; // 鑻ュ凡鏈?
-
-const router = Router();
-router.post('/', authMiddleware, ctrl.createExperiment);
-router.get('/', authMiddleware, ctrl.listExperiments);
-router.delete('/:id', authMiddleware, ctrl.deleteExperiment);
-export default router;
-```
-
-**鎺у埗鍣ㄦ牱渚嬶紙绮剧畝锛?*锛?
-
-```js
-// backend/src/controllers/experimentsController.js
-import { pool } from '../config/database.js';
-
-export async function createExperiment(req, res) {
-  const { preset_id, models, statistics } = req.body || {};
-  if (!preset_id || !Array.isArray(models) || !statistics) {
-    return res.status(400).json({ success:false, message:'bad request' });
-  }
-  const [ret] = await pool.query(
-    'INSERT INTO experiment_results (preset_id, models, statistics) VALUES (?,?,?)',
-    [preset_id, JSON.stringify(models), JSON.stringify(statistics)]
-  );
-  res.json({ success:true, id: ret.insertId });
-}
-
-export async function listExperiments(req, res) {
-  const presetId = Number(req.query.preset_id);
-  const limit = Number(req.query.limit || 10);
-  const offset = Number(req.query.offset || 0);
-  if (!presetId) return res.status(400).json({ success:false, message:'preset_id required' });
-
-  const [rows] = await pool.query(
-    'SELECT id, preset_id, models, statistics, created_at FROM experiment_results WHERE preset_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [presetId, limit, offset]
-  );
-  // 鍙€夛細JSON.parse(models/statistics)
-  const items = rows.map(r => ({
-    ...r,
-    models: JSON.parse(r.models),
-    statistics: JSON.parse(r.statistics)
-  }));
-  res.json({ success:true, items });
-}
-
-export async function deleteExperiment(req, res) {
-  const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ success:false, message:'id required' });
-  await pool.query('DELETE FROM experiment_results WHERE id=?', [id]);
-  res.json({ success:true });
-}
-```
-
----
-
-## 6. 鍓嶇闆嗘垚鐐?
-
-* 鏂板锛歚js/parallel-test/analyzer.js`锛堣仛鍚堥€昏緫 + CSV 瀵煎嚭 + 鍥捐〃娓叉煋锛?
-* 淇敼锛歚js/preset-manager/*`锛堣鎯呴潰鏉块噷鎸傝浇鎸夐挳涓庢覆鏌撻€昏緫锛?
-* 浣跨敤浣犲凡鏈夛細`js/api-manager.js`锛堟柊澧?`get`, `post` 璋冪敤灏佽锛?
-
-  * `POST /api/experiments` 淇濆瓨
-  * `GET  /api/experiments?preset_id=...` 鎷夊巻鍙?
-
-**浜嬩欢缁戝畾绀轰緥**锛?
-
-```js
-import { analyzeResultsByModel, renderModelCompare, renderErrorPie, exportStatsToCSV } from '../parallel-test/analyzer.js';
-import { apiGet, apiPost } from '../api-manager.js';
-
-let currentAgg = null;
-
-document.getElementById('btn-run-parallel-test').onclick = async () => {
-  const presetId = getCurrentPresetId(); // 浣犵幇鏈夋柟娉?
-  const results = await runParallelTestForPreset(presetId); // 浣犵幇鏈夋柟娉?
-  currentAgg = analyzeResultsByModel(results, presetId);
-  updateSummaryUI(currentAgg);
-  renderModelCompare('chart-model-compare', currentAgg.statistics);
-  renderErrorPie('chart-error-pie', currentAgg.statistics);
-  document.getElementById('btn-save-current-result').disabled = false;
-  document.getElementById('btn-export-csv').disabled = false;
-};
-
-document.getElementById('btn-save-current-result').onclick = async () => {
-  if (!currentAgg) return;
-  const { preset_id, models_tested } = currentAgg.meta;
-  const payload = {
-    preset_id,
-    models: models_tested,
-    statistics: currentAgg.statistics
-  };
-  const res = await apiPost('/api/experiments', payload);
-  if (res.success) {
-    toast('淇濆瓨鎴愬姛');
-    await reloadHistory(preset_id);
-  } else {
-    toast('淇濆瓨澶辫触');
-  }
-};
-
-document.getElementById('btn-export-csv').onclick = () => {
-  if (currentAgg) exportStatsToCSV(currentAgg);
-};
-
-async function reloadHistory(presetId) {
-  const data = await apiGet(`/api/experiments?preset_id=${presetId}&limit=10`);
-  renderHistoryList(data.items);
-}
-```
-
----
-
-## 7. 鏉冮檺涓庡畨鍏?
-
-* API 闇€甯?`Authorization: Bearer <token>`锛堟部鐢ㄤ綘鐜版湁璁よ瘉涓棿浠讹級
-* 浠呭厑璁?*褰撳墠鐧诲綍鐢ㄦ埛**鎿嶄綔鍏舵湁鏉冮檺鐨勯璁撅紙濡傞渶澶氱敤鎴烽殧绂诲彲鍦ㄨ〃涓姞 `user_id`锛?
-
----
-
-## 8. 楠屾敹娓呭崟锛堝彲浜ょ粰 AI 鐨勮嚜娴嬮」锛?
-
-* [ ] 棰勮璇︽儏椤靛彸涓嬫柊澧炪€屾祴璇曠粨鏋溿€嶅尯鍩?
-* [ ] 鐐瑰嚮鈥滆繍琛屽苟琛屾祴璇曗€濆悗锛岃兘鍑?*妯″瀷瀵规瘮鏌辩姸鍥?*涓?*閿欒鍒嗗竷楗煎浘**
-* [ ] 鈥滀繚瀛樻湰娆℃祴璇曠粨鏋溾€濆彲鍐欏叆鏁版嵁搴?
-* [ ] 鈥滃巻鍙叉祴璇曡褰曗€濇寜鏃堕棿鍊掑簭鏄剧ず锛岀偣鍑讳竴鏉″彲鍥炴樉鍥捐〃锛堝彲閫夛級
-* [ ] 鈥滃鍑篊SV鈥濆寘鍚ā鍨嬨€佹€绘暟銆侀€氳繃/澶辫触銆侀€氳繃鐜囥€侀敊璇垎甯?JSON)
-* [ ] 鎺ュ彛閴存潈銆佺敓鍍婚敊璇被鍨嬪悎骞朵负鈥滃叾浠栤€?
-* [ ] 鏁版嵁搴撹縼绉昏剼鏈彲閲嶅鎵ц锛圛F NOT EXISTS锛?
-
----
-
-## 9. 閲岀▼纰戜笌瀹炵幇椤哄簭锛堢粰 AI 鐨勬墽琛屾楠わ級
-
-1. **DB**锛氬湪 `migrations.sql` 娣诲姞 `experiment_results` 琛紱鏈湴 `npm run init-db`
-2. **Back-end**锛氭柊澧?`routes/experiments.js`銆乣controllers/experimentsController.js`锛涘湪 `app.js` 鎸傝浇
-3. **Front-end**锛氭柊澧?`analyzer.js`锛涘湪棰勮璇︽儏椤靛紩鍏?ECharts 涓庢寜閽€昏緫
-4. **鑱氬悎**锛氱敤 `analyzeResultsByModel` 澶勭悊鐜版湁骞惰娴嬭瘯 `results[]`
-5. **鍙鍖?*锛氭覆鏌撲袱涓浘琛?+ 椤堕儴鎽樿
-6. **淇濆瓨**锛歅OST 淇濆瓨缁熻缁撴灉锛涘埛鏂板巻鍙插垪琛?
-7. **瀵煎嚭**锛氬疄鐜?`exportStatsToCSV`
-8. **楠屾敹**锛氳窇涓€娆″畬鏁存祦绋嬶紝鎴浘鍐欏叆璁烘枃
-
----
-
-## 10. JSON 楠岃瘉锛堜繚瀛樻帴鍙ｅ叆鍙?Schema锛屼粎渚涘弬鑰冿級
-
-```yaml
-type: object
-required:
-  - preset_id
-  - models
-  - statistics
-properties:
-  preset_id:
-    type: integer
-  models:
-    type: array
-    minItems: 1
-    items:
-      type: string
-  statistics:
-    type: object
-    additionalProperties:
-      type: object
-      required: [total, pass, fail, passRate, errors]
-      properties:
-        total: { type: integer }
-        pass:  { type: integer }
-        fail:  { type: integer }
-        passRate: { type: integer, minimum: 0, maximum: 100 }
-        errors:
-          type: object
-          additionalProperties: { type: integer }
-```
+## 5. 实现顺序
+1) DB：确保 `experiment_results` 表存在且字段正确。  
+2) 后端：接口校验与鉴权；必要时增加 test-runs 汇总接口。  
+3) 前端：聚合函数与图表渲染（ECharts）；按钮与历史列表交互。  
+4) CSV 导出与错误提示；完成自测流程。
 
 ---
 
