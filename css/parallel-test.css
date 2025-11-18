@@ -1857,6 +1857,7 @@
     display: flex;
     gap: 12px;
     z-index: 100;
+    flex-wrap: wrap; /* allow wrapping on narrow layouts */
 }
 
 /* Task buttons - styled identically */
@@ -1907,6 +1908,22 @@
 .task-button#task-delete-all:hover {
     border-color: #dc2626;
     color: #dc2626;
+}
+
+/* Text-style pill button for saving results */
+.task-button#task-save-results {
+    height: 40px;
+    min-width: 120px;
+    width: auto;
+    padding: 0 14px;
+    border-radius: 20px; /* pill */
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.task-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Position the buttons container relative to the left column container */

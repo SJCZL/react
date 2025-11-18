@@ -67,7 +67,7 @@
 
 import { ContinuousGenerationService } from './ContinuousGenerationService.js';
 import { AssessmentService } from './AssessmentService.js';
-import { RatingService } from './RatingService.js';
+// RatingService removed: expert-based rating feature disabled
 
 export class TaskOrchestrator {
   /**
@@ -99,7 +99,7 @@ export class TaskOrchestrator {
     // Services
     this._cgs = null;
     this._as = null;
-    this._rs = null;
+    this._rs = null; // no rating service when feature disabled
   }
 
   // EventEmitter-style API
@@ -161,7 +161,7 @@ export class TaskOrchestrator {
     // Initialize services
     this._cgs = new ContinuousGenerationService(this.apiKey);
     this._as = new AssessmentService(this.apiKey);
-    this._rs = new RatingService(this.apiKey);
+    // Skip rating service initialization (feature removed)
 
     // Wire streaming
     this._wireStreaming();
@@ -266,6 +266,11 @@ export class TaskOrchestrator {
     // Abort generation if ongoing
     try {
       this._cgs?.stopSession();
+    } catch (_) {}
+
+    // Abort assessment if ongoing
+    try {
+      this._as?.abort?.();
     } catch (_) {}
 
     this.emit('abort', { timestamp: Date.now() });
@@ -459,25 +464,7 @@ export class TaskOrchestrator {
       return;
     }
 
-    // Then run rating with assessment results (also use stripped version)
-    this.emit('evalUpdate', { service: 'rating', status: 'started' });
-    
-    try {
-      const cfg = this._inputs.ratingConfig || {};
-      const ratingResult = await this._rs.startRating({
-        llmConfig: cfg.llmConfig || {},
-        chatRecord: chatRecordForAssessment, // Use stripped version
-        sceneDescription: this._inputs.cgsInputs.sceneInfo || '',
-        assessmentResult: assessmentResult, // Pass assessment results to rating
-        expertPanel: cfg.expertPanel || [],
-        includeSystemPrompt: cfg.includeSystemPrompt !== false
-      });
-      this._artifacts.ratingResult = ratingResult;
-      this.emit('evalUpdate', { service: 'rating', status: 'completed', data: ratingResult });
-    } catch (e) {
-      const err = { message: e?.message || 'Rating error' };
-      this.emit('evalUpdate', { service: 'rating', status: 'failed', error: err });
-    }
+    // Rating stage removed: do not run rating, keep ratingResult null
   }
 
   _finalizeAbort() {

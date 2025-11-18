@@ -69,7 +69,7 @@ function mountPanel() {
       <div class="pt-tabs">
         <button class="pt-tab ${state.activeTab === 'basic' ? 'active' : ''}" data-tab="basic">基础</button>
         <button class="pt-tab ${state.activeTab === 'mistakes' ? 'active' : ''}" data-tab="mistakes">错误库</button>
-        <button class="pt-tab ${state.activeTab === 'experts' ? 'active' : ''}" data-tab="experts">专家团队</button>
+        
       </div>
 
       ${renderBlockingError()}
@@ -81,9 +81,7 @@ function mountPanel() {
         <div class="pt-tab-content ${state.activeTab === 'mistakes' ? 'active' : 'hidden'}" data-tab="mistakes">
           ${renderMistakesTab()}
         </div>
-        <div class="pt-tab-content ${state.activeTab === 'experts' ? 'active' : 'hidden'}" data-tab="experts">
-          ${renderExpertsTab()}
-        </div>
+        
       </div>
     </div>
   `;

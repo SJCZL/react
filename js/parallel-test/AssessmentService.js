@@ -8,6 +8,7 @@ import { modelConfig } from '../config/ModelConfig.js';
 export class AssessmentService extends BaseService {
     constructor(apiKey = null, modelName = null) {
         super(apiKey, modelName);
+        this._abortController = null;
     }
 
     /**
@@ -49,14 +50,18 @@ export class AssessmentService extends BaseService {
         ];
 
         try {
+            // Create/refresh abort controller for this run
+            this._abortController = new AbortController();
             // Get assessment from LLM
-            const response = await this.getLLMResponse(apiMessages, llmConfig);
+            const response = await this.getLLMResponse(apiMessages, llmConfig, this._abortController.signal);
             const assessmentResult = this.parseAssessmentResponse(response, mistakeLibrary, emitUnlistedIssues);
             
             return assessmentResult;
         } catch (error) {
             console.error('Assessment error:', error);
             throw error;
+        } finally {
+            this._abortController = null;
         }
     }
 
@@ -230,3 +235,10 @@ ${formattedConversation}
         }
     }
 }
+
+// Add abort capability to cancel in-flight assessment requests
+AssessmentService.prototype.abort = function() {
+    if (this._abortController) {
+        try { this._abortController.abort(); } catch (_) {}
+    }
+};

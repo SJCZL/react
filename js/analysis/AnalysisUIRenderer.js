@@ -186,11 +186,9 @@ export class AnalysisUIRenderer {
                 <h4>专家评分</h4>
                 <div class="expert-rating-grid">
                     ${Object.entries(expertRatings).map(([expertName, rating]) => {
-                        const expertConfig = ANALYSIS_CONFIG.SALES_RATING_EXPERTS.find(e => e.name === expertName);
-                        const expertType = expertConfig ? expertConfig.type : 'unknown';
                         
                         return `
-                            <div class="expert-rating-card ${expertType}">
+                            <div class="expert-rating-card">
                                 <div class="expert-rating-header">
                                     <div class="expert-info">
                                         <div class="expert-name">${expertName}</div>

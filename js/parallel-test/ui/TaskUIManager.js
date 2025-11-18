@@ -12,6 +12,8 @@
 import { TaskScheduler } from '../TaskScheduler.js';
 import * as CSV from '../../utils/csv.mjs';
 import { modelConfig } from '../../config/ModelConfig.js';
+import { analyzeResultsByModel } from '../analyzer.js';
+import { apiManager } from '../../api-manager.js';
 
 export class TaskUIManager {
     constructor() {
@@ -20,6 +22,8 @@ export class TaskUIManager {
         this.tasks = new Map(); // taskId -> task UI data
         this.taskCounter = 0;
         this.chatSystemPrompt = '';
+        // Collected results for saving to preset experiments
+        this._resultsForPreset = []; // array of { preset_id, model, sample_id, errors, score?, latency_ms? }
 
         // Alternation state for consecutive parameter-identical tasks
         this._lastParamsSignature = null; // last effective params signature
@@ -106,6 +110,15 @@ export class TaskUIManager {
         exportCsvButton.title = '导出已完成任务为CSV';
         buttonsContainer.appendChild(exportCsvButton);
         
+        // Create save results button (enabled only when no tasks running and there are completed results)
+        const saveBtn = document.createElement('button');
+        saveBtn.id = 'task-save-results';
+        saveBtn.className = 'task-button';
+        saveBtn.textContent = '保存测试结果';
+        saveBtn.disabled = true;
+        buttonsContainer.appendChild(saveBtn);
+        this.saveResultsButton = saveBtn;
+        
         // Create add task button (FAB)
         const fab = document.createElement('button');
         fab.id = 'task-fab';
@@ -120,6 +133,41 @@ export class TaskUIManager {
         buttonsContainer.appendChild(fab);
         
         container.appendChild(buttonsContainer);
+
+        // Hook up save handler
+        saveBtn.addEventListener('click', async () => {
+            if (!this._resultsForPreset || this._resultsForPreset.length === 0) return;
+            const pm = window.presetUIManager?.currentPreset;
+            const presetId = pm?.id || 0;
+            if (!presetId) {
+                alert('当前预设没有ID（本地预设），无法保存到数据库');
+                return;
+            }
+            try {
+                const agg = analyzeResultsByModel(this._resultsForPreset, presetId);
+                const payload = {
+                    preset_id: presetId,
+                    models: agg.meta.models_tested,
+                    statistics: agg.statistics
+                };
+                const res = await apiManager.createExperiment(payload);
+                if (res.success) {
+                    alert('测试结果已保存');
+                    try {
+                        document.dispatchEvent(new CustomEvent('presetResultsReload', {
+                            detail: { presetId }
+                        }));
+                    } catch (err) {
+                        console.warn('[TaskUIManager] Failed to dispatch presetResultsReload', err);
+                    }
+                } else {
+                    alert('保存失败');
+                }
+            } catch (e) {
+                console.error('[TaskUIManager] 保存测试结果失败', e);
+                alert('保存失败：' + (e?.message || '未知错误'));
+            }
+        });
     }
 
     bindEvents() {
@@ -385,7 +433,8 @@ export class TaskUIManager {
                             ? preset.basic?.endCondition?.rounds
                             : preset.basic?.endCondition?.[preset.basic?.endCondition?.type + 'Regex'] || '<\\?END_CHAT>'
                     },
-                    modelName: preset.dialogue?.model || modelConfig.currentModel, // 使用并行测试中选择的模型或全局模型配置
+                    // 强制使用当前模型配置，避免预设遗留的模型覆盖实际选择
+                    modelName: modelConfig.currentModel,
                     temperature: preset.dialogue?.temperature || 0.97, // This is for the assistant
                     topP: preset.dialogue?.top_p || 0.3 // This is for the assistant
                 },
@@ -395,7 +444,18 @@ export class TaskUIManager {
                         top_p: preset.evaluation?.top_p || 0.97,
                         temperature: preset.evaluation?.temperature || 0.75
                     },
-                    mistakeLibrary: { mistakes },
+                    // 将错误库转换为按名称/ID索引的字典，便于提示与匹配
+                    mistakeLibrary: (() => {
+                        const lib = {};
+                        try {
+                            for (const m of mistakes) {
+                                const key = (m.id || m.name || '').toString().trim();
+                                if (!key) continue;
+                                lib[key] = { name: m.name || key, severity: m.severity || 'Warning', description: m.description || '' };
+                            }
+                        } catch {}
+                        return lib;
+                    })(),
                     emitUnlistedIssues: preset.assessmentOptions?.includeUnlistedIssues !== false
                 },
                 ratingConfig: {
@@ -999,6 +1059,53 @@ export class TaskUIManager {
         }
         
         console.log(`[TaskUIManager] Task ${taskId} completed`, payload);
+
+        // Build a compact result sample for analyzer and saving
+        try {
+            const td = this.tasks.get(taskId);
+            const model = td?.inputs?.cgsInputs?.modelName || modelConfig.currentModel || 'model';
+            const assessment = payload?.assessmentResult || td?.assessmentResult || null;
+
+            // 汇总各严重级别错误并拍平错误名
+            const getNames = (arr) => {
+                const out = [];
+                try { (arr || []).forEach(it => { const n = (it?.name || '').toString().trim(); if (n) out.push(n); }); } catch {}
+                return out;
+            };
+            const summary = {
+                Inform: getNames(assessment?.Inform),
+                Warning: getNames(assessment?.Warning),
+                Error: getNames(assessment?.Error),
+                Unlisted: getNames(assessment?.Unlisted)
+            };
+            const errors = [...summary.Error, ...summary.Warning, ...summary.Inform, ...summary.Unlisted];
+
+            const pm = window.presetUIManager?.currentPreset;
+            const presetId = pm?.id || 0;
+            const sample = {
+                preset_id: presetId,
+                model,
+                sample_id: `task-${taskId}`,
+                errors,
+                errorSummary: summary,
+                errorCounts: {
+                    Inform: summary.Inform.length,
+                    Warning: summary.Warning.length,
+                    Error: summary.Error.length,
+                    Unlisted: summary.Unlisted.length
+                },
+                score: (typeof payload?.ratingResult?.finalScore === 'number') ? payload.ratingResult.finalScore : undefined,
+                latency_ms: undefined
+            };
+            this._resultsForPreset.push(sample);
+            // Also make last results visible to preset results panel if needed
+            window.__lastParallelResults = (this._resultsForPreset.slice());
+        } catch (e) {
+            console.warn('[TaskUIManager] Failed to collect result sample for analyzer', e);
+        }
+
+        // Enable save button only when no tasks are running and at least one result collected
+        this.updateSaveButtonState();
     }
 
     handleTaskError(taskId, payload) {
@@ -1055,6 +1162,18 @@ export class TaskUIManager {
             clearInterval(taskData.timerInterval);
             taskData.timerInterval = null;
         }
+
+        // Update save button on any status change
+        this.updateSaveButtonState();
+    }
+
+    updateSaveButtonState() {
+        try {
+            if (!this.saveResultsButton) return;
+            const anyRunning = Array.from(this.tasks.values()).some(t => t.status === 'generating');
+            const hasResults = (this._resultsForPreset && this._resultsForPreset.length > 0);
+            this.saveResultsButton.disabled = anyRunning || !hasResults;
+        } catch {}
     }
 
     updateTaskTimer(taskId) {

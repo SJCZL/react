@@ -14,50 +14,12 @@ export class SalesPerformanceService extends BaseAnalysisService {
      * Analyze sales performance for user messages
      */
     async analyzeSalesPerformance(systemPrompt, conversationHistory, currentMessage, options = {}) {
-        const experts = ANALYSIS_CONFIG.SALES_RATING_EXPERTS;
+        // Expert-based rating feature removed; build analysis without expert panel
         const analysis = new SalesPerformanceAnalysis();
-        
-        // Generate expert analyses in parallel
-        const expertPromises = experts.map(expert => 
-            this.generateExpertRating(expert, systemPrompt, conversationHistory, currentMessage, options)
-        );
+        analysis.expertRatings = {};
         
         try {
-            const expertResults = await Promise.allSettled(expertPromises);
-            
-            // Process results and calculate aggregates
-            let validExpertCount = 0;
-            let totalScore = 0;
-            
-            expertResults.forEach((result, index) => {
-                if (result.status === 'fulfilled' && result.value) {
-                    const expertRating = result.value;
-                    analysis.expertRatings[experts[index].name] = expertRating;
-                    totalScore += expertRating.score;
-                    validExpertCount++;
-                } else {
-                    console.warn(`Expert ${experts[index].name} rating failed:`, result.reason);
-                }
-            });
-            
-            // Calculate overall score with weighted average (harsh experts have higher weight)
-            if (validExpertCount > 0) {
-                let weightedTotal = 0;
-                let totalWeight = 0;
-                
-                expertResults.forEach((result, index) => {
-                    if (result.status === 'fulfilled' && result.value) {
-                        const expertRating = result.value;
-                        const expert = experts[index];
-                        // Harsh experts get 1.5x weight, gentle experts get 1.0x weight
-                        const weight = expert.type === 'harsh' ? 1.5 : 1.0;
-                        weightedTotal += expertRating.score * weight;
-                        totalWeight += weight;
-                    }
-                });
-                
-                analysis.overallScore = Math.round((weightedTotal / totalWeight / 100) * 100) / 100;
-            }
+            // Skip expert scoring entirely; keep overallScore at default (0)
             
             // Generate additional analysis elements
             await this.generateAdditionalAnalysis(analysis, systemPrompt, conversationHistory, currentMessage, options);

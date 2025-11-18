@@ -29,7 +29,7 @@ export class BaseService {
      * @param {Object} llmConfig - LLM configuration
      * @returns {Promise<string>} - LLM response
      */
-    async getLLMResponse(messages, llmConfig) {
+    async getLLMResponse(messages, llmConfig, signal = undefined) {
         const {
             temperature = 0.3,
             topP = 0.9
@@ -39,14 +39,25 @@ export class BaseService {
             const reader = await this.apiService.streamLLMResponse(
                 messages,
                 temperature,
-                topP
+                topP,
+                signal
             );
 
             const decoder = new TextDecoder();
             let response = '';
 
             while (true) {
-                const { value, done } = await reader.read();
+                let value, done;
+                try {
+                    const res = await reader.read();
+                    value = res.value; done = res.done;
+                } catch (err) {
+                    // If aborted while reading the stream, surface AbortError
+                    if (err && err.name === 'AbortError') {
+                        throw err;
+                    }
+                    throw err;
+                }
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
@@ -72,6 +83,10 @@ export class BaseService {
 
             return response;
         } catch (error) {
+            if (error && error.name === 'AbortError') {
+                // Propagate abort without wrapping to allow callers to detect
+                throw error;
+            }
             console.error('LLM API error:', error);
             throw new Error(`Failed to get LLM response: ${error.message}`);
         }

@@ -81,6 +81,7 @@ export class PresetUIManager {
                         <div class="preset-details-header">
                             <h3>预设详情</h3>
                             <div class="preset-details-actions">
+                                <button id="show-results-btn" class="preset-btn info" style="display: none;">显示测试结果</button>
                                 <button id="edit-preset-btn" class="preset-btn" style="display: none;">编辑</button>
                                 <button id="delete-preset-btn" class="preset-btn danger" style="display: none;">删除</button>
                                 <button id="apply-preset-btn" class="preset-btn success" style="display: none;">应用</button>
@@ -275,9 +276,23 @@ export class PresetUIManager {
         });
 
         // Action button events
+        const showResultsBtn = document.getElementById('show-results-btn');
+        if (showResultsBtn) {
+            showResultsBtn.textContent = '\u663E\u793A\u6D4B\u8BD5\u7ED3\u679C';
+        }
         document.getElementById('export-presets-btn').addEventListener('click', () => this.exportPresets());
         document.getElementById('import-presets-btn').addEventListener('click', () => this.triggerImport());
         document.getElementById('add-preset-btn').addEventListener('click', () => this.showAddPresetModal());
+        const handleShowResults = () => this.handleShowResultsClick();
+        document.getElementById('show-results-btn').addEventListener('click', handleShowResults);
+        // 兜底捕获，避免因某些重绘或绑定丢失导致按钮无效
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.closest && e.target.closest('#show-results-btn')) {
+                handleShowResults();
+            }
+        });
+        // 初始化时确保按钮可见可点（即便没有选中已保存预设）
+        this.forceShowResultsButton(Boolean(this.currentPreset?.id));
         document.getElementById('edit-preset-btn').addEventListener('click', () => this.showEditPresetModal());
         document.getElementById('delete-preset-btn').addEventListener('click', () => this.deleteCurrentPreset());
         document.getElementById('apply-preset-btn').addEventListener('click', () => this.applyCurrentPreset());
@@ -501,7 +516,8 @@ export class PresetUIManager {
             container.innerHTML = '<div class="no-presets">没有找到匹配的预设</div>';
             this.currentIndex = -1;
             this.currentPreset = null;
-            // hide action buttons
+            // keep show-results available for recent local results
+            this.forceShowResultsButton(false);
             document.getElementById('edit-preset-btn').style.display = 'none';
             document.getElementById('delete-preset-btn').style.display = 'none';
             document.getElementById('apply-preset-btn').style.display = 'none';
@@ -515,6 +531,27 @@ export class PresetUIManager {
                 }
             }
         }
+    }
+
+    handleShowResultsClick() {
+        const presetId = this.currentPreset?.id || 0;
+        const lastResults = Array.isArray(window.__lastParallelResults) ? window.__lastParallelResults : [];
+        document.dispatchEvent(new CustomEvent('presetResultsShowClicked', {
+            detail: { presetId, results: lastResults }
+        }));
+        if (!presetId && (!lastResults || lastResults.length === 0)) {
+            alert('没有可视化数据：请先运行一次并行测试，或选择一个已保存且有历史的预设。');
+        }
+    }
+
+    forceShowResultsButton(hasId = false) {
+        const btn = document.getElementById('show-results-btn');
+        if (!btn) return;
+        btn.style.display = 'inline-block';
+        btn.disabled = false;
+        btn.title = hasId
+            ? '查看并刷新测试可视化'
+            : '展示最近一次并行测试结果（未保存预设也可查看）';
     }
 
     selectPreset(preset, element) {
@@ -534,9 +571,22 @@ export class PresetUIManager {
         this.showPresetDetails(preset);
     
         // Enable action buttons
+        const showBtn = document.getElementById('show-results-btn');
+        if (showBtn) {
+            this.forceShowResultsButton(Boolean(preset?.id));
+        }
         document.getElementById('edit-preset-btn').style.display = 'inline-block';
         document.getElementById('delete-preset-btn').style.display = 'inline-block';
         document.getElementById('apply-preset-btn').style.display = 'inline-block';
+
+        try {
+            const event = new CustomEvent('presetSelected', {
+                detail: { preset: { ...preset } }
+            });
+            document.dispatchEvent(event);
+        } catch (err) {
+            console.warn('[PresetUIManager] Failed to dispatch presetSelected event', err);
+        }
     }
 
     showPresetDetails(preset) {

@@ -154,6 +154,71 @@ export class APIManager {
 
         return await response.json();
     }
+
+    /**
+     * 创建实验（保存聚合统计）
+     */
+    async createExperiment(payload) {
+        const response = await this.makeRequest('/experiments', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '保存实验结果失败' }));
+            throw new Error(errorData.message || '保存实验结果失败');
+        }
+        return await response.json();
+    }
+
+    /**
+     * 查询实验历史
+     */
+    async listExperiments(params = {}) {
+        const qs = new URLSearchParams(params).toString();
+        const response = await this.makeRequest(`/experiments${qs ? `?${qs}` : ''}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '获取实验历史失败' }));
+            throw new Error(errorData.message || '获取实验历史失败');
+        }
+        return await response.json();
+    }
+
+    /**
+     * 删除实验（可选）
+     */
+    async deleteExperiment(id) {
+        const response = await this.makeRequest(`/experiments/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '删除实验记录失败' }));
+            throw new Error(errorData.message || '删除实验记录失败');
+        }
+        return await response.json();
+    }
+
+    /**
+     * 获取测试运行列表
+     */
+    async listTestRuns(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await this.makeRequest(`/test-runs${queryString ? `?${queryString}` : ''}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '获取测试运行失败' }));
+            throw new Error(errorData.message || '获取测试运行失败');
+        }
+        return await response.json();
+    }
+
+    /**
+     * 获取测试运行汇总
+     */
+    async getTestRunSummary(id) {
+        const response = await this.makeRequest(`/test-runs/${id}/summary`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: '获取测试汇总失败' }));
+            throw new Error(errorData.message || '获取测试汇总失败');
+        }
+        return await response.json();
+    }
 }
 
 // 创建全局实例

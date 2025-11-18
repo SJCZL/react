@@ -2020,3 +2020,7 @@ kbd {
 }
 }
 
+
+/* Hide expert type labels after feature removal */
+.expert-type { display: none !important; }
+
