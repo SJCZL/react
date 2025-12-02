@@ -4,25 +4,182 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>测试登录页面</title>
-</head>
-<body>
-    <h1>测试登录页面</h1>
-    <form id="login-form">
-        <div>
-            <label for="login-username">用户名:</label>
-            <input type="text" id="login-username" value="wss37" required>
-        </div>
-        <div>
-            <label for="login-password">密码:</label>
-            <input type="password" id="login-password" value="w123456" required>
-        </div>
-        <button type="submit">登录</button>
-    </form>
+    <link rel="stylesheet" href="css/ios-theme.css">
+    <style>
+        :root {
+            --demo-border: var(--ios-border, #d1d1d6);
+            --demo-surface: var(--ios-surface, #ffffff);
+            --demo-shadow: var(--ios-shadow, 0 14px 30px rgba(0, 0, 0, 0.08));
+            --demo-radius: var(--ios-radius, 18px);
+            --demo-text: var(--ios-text, #0f172a);
+            --demo-muted: var(--ios-muted, #6e6e73);
+            --demo-primary: var(--ios-primary, #0a84ff);
+        }
 
-    <div id="message"></div>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .demo-layout {
+            width: min(640px, 94vw);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 10px 0 24px;
+        }
+
+        .demo-head {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: var(--demo-text);
+        }
+
+        .demo-head h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 750;
+            letter-spacing: 0.2px;
+        }
+
+        .demo-head p {
+            margin: 0;
+            color: var(--demo-muted);
+        }
+
+        .demo-card {
+            padding: 22px 20px;
+        }
+
+        .demo-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-row label {
+            font-weight: 650;
+            color: var(--demo-text);
+        }
+
+        .form-row input {
+            padding: 12px 14px;
+            border: 1px solid var(--demo-border);
+            border-radius: 14px;
+            font-size: 15px;
+            background: #f7f7fb;
+            color: var(--demo-text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-row input:focus {
+            outline: none;
+            border-color: var(--demo-primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+        }
+
+        .demo-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .demo-actions small {
+            color: var(--demo-muted);
+        }
+
+        .demo-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0a84ff, #4da3ff);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(10, 132, 255, 0.24);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(10, 132, 255, 0.24);
+        }
+
+        .demo-btn:active {
+            transform: translateY(0);
+        }
+
+        .demo-message {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            display: none;
+            font-weight: 600;
+        }
+
+        .demo-message.success {
+            display: block;
+            background: #e8fff0;
+            color: #176c3f;
+            border-color: #c7f3d6;
+        }
+
+        .demo-message.error {
+            display: block;
+            background: #fff1f0;
+            color: #b91c1c;
+            border-color: #fbcfd0;
+        }
+
+        @media (max-width: 520px) {
+            .demo-card {
+                padding: 18px 16px;
+            }
+        }
+    </style>
+</head>
+<body class="ios-skin">
+    <div class="demo-layout">
+        <div class="demo-head">
+            <span class="ios-pill">接口联调</span>
+            <h1>测试登录页面</h1>
+            <p>用于快速验证本地 auth API，预设一组默认测试账号。</p>
+        </div>
+
+        <div class="demo-card">
+            <form id="login-form" class="demo-form">
+                <div class="form-row">
+                    <label for="login-username">用户名</label>
+                    <input type="text" id="login-username" value="wss37" required>
+                </div>
+                <div class="form-row">
+                    <label for="login-password">密码</label>
+                    <input type="password" id="login-password" value="w123456" required>
+                </div>
+                <div class="demo-actions">
+                    <small>表单直接调用 <code>/auth/login</code> 接口</small>
+                    <button type="submit" class="demo-btn">开始请求</button>
+                </div>
+            </form>
+
+            <div id="message" class="demo-message" aria-live="polite"></div>
+        </div>
+    </div>
 
     <script type="module">
-        // 模拟auth-manager.js的逻辑
         class TestAuthManager {
             constructor() {
                 this.apiBaseUrl = 'http://localhost:3001/api';
@@ -40,15 +197,10 @@
                     headers
                 };
 
-                console.log('Making request to:', url);
-                console.log('Request config:', config);
-
                 try {
                     const response = await fetch(url, config);
-                    console.log('Response status:', response.status);
-
                     if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+                        const errorData = await response.json().catch(() => ({ message: '请求失败' }));
                         throw new Error(errorData.message || `HTTP ${response.status}`);
                     }
 
@@ -60,26 +212,20 @@
             }
 
             async login(credentials) {
-                console.log('Login credentials:', credentials);
-
                 const response = await this.makeAuthRequest('/auth/login', {
                     method: 'POST',
                     body: JSON.stringify(credentials)
                 });
 
-                const data = await response.json();
-                console.log('Login response data:', data);
-                return data;
+                return response.json();
             }
         }
 
-        // 登录管理器
         class TestLoginManager {
             constructor() {
                 this.loginForm = document.getElementById('login-form');
                 this.messageElement = document.getElementById('message');
                 this.authManager = new TestAuthManager();
-
                 this.bindEvents();
             }
 
@@ -93,14 +239,6 @@
                 const username = document.getElementById('login-username').value.trim();
                 const password = document.getElementById('login-password').value.trim();
 
-                console.log('=== LOGIN ATTEMPT ===');
-                console.log('Raw username:', document.getElementById('login-username').value);
-                console.log('Raw password:', document.getElementById('login-password').value);
-                console.log('Trimmed username:', username);
-                console.log('Trimmed password:', password);
-                console.log('Username length:', username.length);
-                console.log('Password length:', password.length);
-
                 if (!username || !password) {
                     this.showMessage('请输入用户名和密码', 'error');
                     return;
@@ -108,7 +246,7 @@
 
                 try {
                     const result = await this.authManager.login({ username, password });
-                    this.showMessage('登录成功！', 'success');
+                    this.showMessage('登录成功', 'success');
                     console.log('Success result:', result);
                 } catch (error) {
                     console.error('Login failed:', error);
@@ -118,26 +256,13 @@
 
             showMessage(message, type) {
                 this.messageElement.textContent = message;
-                this.messageElement.className = type;
-                this.messageElement.style.display = 'block';
+                this.messageElement.className = `demo-message ${type}`;
             }
         }
 
-        // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             new TestLoginManager();
         });
     </script>
-
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        form { margin-bottom: 20px; }
-        div { margin: 10px 0; }
-        input { padding: 5px; margin-left: 10px; }
-        button { padding: 8px 16px; margin-top: 10px; }
-        #message { margin-top: 20px; padding: 10px; border-radius: 4px; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    </style>
 </body>
 </html>

@@ -9,13 +9,15 @@ export class ModelConfig {
         this.currentModel = 'qwen3-max'; // 更新为新的默认模型
         this.apiKeys = {}; // 每个提供商独立的API密钥（已废弃，仅用于向后兼容）
         this.customProviders = {}; // 用户自定义的服务商
+        this.customModels = {}; // 各提供商下用户自定义的模型
+        this.modelPrices = {}; // 记录模型价格 {providerId: {modelId: price}}
         this.backendApiKeys = {}; // 从后端加载的API密钥
 
         // 初始化提供商配置
         this.providers = this.initializeProviders();
 
-        // 不再加载本地缓存的API密钥
-        // this.loadSavedConfig();
+        // 加载本地保存的非敏感配置（自定义模型、价格等）
+        this.loadSavedConfig();
 
         // 如果用户已登录，从后端加载API密钥
         if (authManager.isAuthenticated()) {
@@ -152,9 +154,9 @@ export class ModelConfig {
      * 获取当前模型信息
      */
     getCurrentModel() {
-        const provider = this.getCurrentProvider();
-        if (!provider) return null;
-        return provider.models.find(m => m.id === this.currentModel) || provider.models[0];
+        const models = this.getProviderModels(this.currentProvider);
+        if (!models || models.length === 0) return null;
+        return models.find(m => m.id === this.currentModel) || models[0];
     }
 
     /**
@@ -212,7 +214,12 @@ export class ModelConfig {
         if (provider) {
             this.currentProvider = providerId;
             // 切换提供商时，默认选择第一个模型
-            this.currentModel = provider.models[0].id;
+            const providerModels = this.getProviderModels(providerId);
+            if (providerModels.length > 0) {
+                this.currentModel = providerModels[0].id;
+            } else {
+                this.currentModel = '';
+            }
             this.saveConfig();
             return true;
         }
@@ -223,8 +230,8 @@ export class ModelConfig {
      * 切换模型
      */
     switchModel(modelId) {
-        const provider = this.getCurrentProvider();
-        const model = provider.models.find(m => m.id === modelId);
+        const models = this.getProviderModels(this.currentProvider);
+        const model = models.find(m => m.id === modelId);
         if (model) {
             this.currentModel = modelId;
             this.saveConfig();
@@ -270,8 +277,12 @@ export class ModelConfig {
      * 获取指定提供商的模型列表
      */
     getProviderModels(providerId = null) {
-        const provider = providerId ? (this.providers[providerId] || this.customProviders[providerId]) : this.getCurrentProvider();
-        return provider ? provider.models : [];
+        const targetId = providerId || this.currentProvider;
+        const provider = targetId ? (this.providers[targetId] || this.customProviders[targetId]) : this.getCurrentProvider();
+        if (!provider) return [];
+
+        const customModels = this.customModels[targetId] || [];
+        return [...(provider.models || []), ...customModels];
     }
 
     /**
@@ -297,10 +308,78 @@ export class ModelConfig {
     removeCustomProvider(providerId) {
         if (this.customProviders[providerId]) {
             delete this.customProviders[providerId];
+            delete this.customModels[providerId];
+            delete this.modelPrices[providerId];
             this.saveConfig();
             return true;
         }
         return false;
+    }
+
+    /**
+     * 为指定提供商添加自定义模型
+     */
+    addCustomModel(providerId, model) {
+        if (!providerId || (!this.providers[providerId] && !this.customProviders[providerId])) {
+            console.warn(`Provider ${providerId} does not exist, cannot add model`);
+            return false;
+        }
+
+        if (!model?.id || !model?.name) {
+            console.warn('Model id and name are required');
+            return false;
+        }
+
+        const existingModels = this.getProviderModels(providerId);
+        if (existingModels.some(m => m.id === model.id)) {
+            console.warn(`Model ${model.id} already exists under provider ${providerId}`);
+            return false;
+        }
+
+        if (!this.customModels[providerId]) {
+            this.customModels[providerId] = [];
+        }
+
+        this.customModels[providerId].push({
+            ...model,
+            isCustom: true
+        });
+
+        // 保存自定义价格（如果有）
+        if (model.price !== undefined && model.price !== null && model.price !== '') {
+            this.setModelPrice(providerId, model.id, model.price);
+        }
+
+        if (this.currentProvider === providerId && !this.currentModel) {
+            this.currentModel = model.id;
+        }
+
+        this.saveConfig();
+        return true;
+    }
+
+    /**
+     * 删除指定提供商下的自定义模型
+     */
+    removeCustomModel(providerId, modelId) {
+        const models = this.customModels[providerId];
+        if (!models) return false;
+
+        const index = models.findIndex(m => m.id === modelId);
+        if (index === -1) return false;
+
+        models.splice(index, 1);
+        if (this.modelPrices[providerId]) {
+            delete this.modelPrices[providerId][modelId];
+        }
+
+        if (this.currentProvider === providerId && this.currentModel === modelId) {
+            const availableModels = this.getProviderModels(providerId);
+            this.currentModel = availableModels[0]?.id || '';
+        }
+
+        this.saveConfig();
+        return true;
     }
 
     /**
@@ -311,7 +390,9 @@ export class ModelConfig {
             currentProvider: this.currentProvider,
             currentModel: this.currentModel,
             apiKeys: this.apiKeys,
-            customProviders: this.customProviders
+            customProviders: this.customProviders,
+            customModels: this.customModels,
+            modelPrices: this.modelPrices
         };
         localStorage.setItem('modelConfig', JSON.stringify(config));
     }
@@ -330,11 +411,14 @@ export class ModelConfig {
                 if (config.currentModel) {
                     this.currentModel = config.currentModel;
                 }
-                if (config.apiKeys) {
-                    this.apiKeys = config.apiKeys;
-                }
                 if (config.customProviders) {
                     this.customProviders = config.customProviders;
+                }
+                if (config.customModels) {
+                    this.customModels = config.customModels;
+                }
+                if (config.modelPrices) {
+                    this.modelPrices = config.modelPrices;
                 }
             }
         } catch (error) {
@@ -351,6 +435,8 @@ export class ModelConfig {
             currentModel: this.currentModel,
             apiKeys: this.apiKeys,
             customProviders: this.customProviders,
+            customModels: this.customModels,
+            modelPrices: this.modelPrices,
             providerInfo: this.getCurrentProvider(),
             modelInfo: this.getCurrentModel()
         };
@@ -364,7 +450,36 @@ export class ModelConfig {
         this.currentModel = 'qwen3-max';
         this.apiKeys = {};
         this.customProviders = {};
+        this.customModels = {};
+        this.modelPrices = {};
         this.saveConfig();
+    }
+
+    /**
+     * 获取模型价格
+     */
+    getModelPrice(providerId, modelId) {
+        if (!providerId || !modelId) return null;
+        const overridePrice = this.modelPrices?.[providerId]?.[modelId];
+        if (overridePrice !== undefined && overridePrice !== null && overridePrice !== '') {
+            return overridePrice;
+        }
+        const models = this.getProviderModels(providerId);
+        const model = models.find(m => m.id === modelId);
+        return model?.price ?? null;
+    }
+
+    /**
+     * 设置模型价格
+     */
+    setModelPrice(providerId, modelId, price) {
+        if (!providerId || !modelId) return false;
+        if (!this.modelPrices[providerId]) {
+            this.modelPrices[providerId] = {};
+        }
+        this.modelPrices[providerId][modelId] = price;
+        this.saveConfig();
+        return true;
     }
 
     /**

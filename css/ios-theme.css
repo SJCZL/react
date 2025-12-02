@@ -1,0 +1,377 @@
+:root {
+    --ios-bg: #f2f2f7;
+    --ios-surface: rgba(255, 255, 255, 0.94);
+    --ios-surface-strong: rgba(255, 255, 255, 0.98);
+    --ios-border: #d1d1d6;
+    --ios-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    --ios-soft-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --ios-primary: #0a84ff;
+    --ios-primary-soft: #e5f1ff;
+    --ios-success: #34c759;
+    --ios-text: #0f172a;
+    --ios-muted: #6e6e73;
+    --ios-radius: 18px;
+    --ios-blur: saturate(180%) blur(18px);
+    --ios-card-gap: 16px;
+}
+
+/* Base shell */
+body.ios-skin {
+    background: radial-gradient(circle at 20% 20%, rgba(10, 132, 255, 0.08), transparent 36%),
+                radial-gradient(circle at 80% 10%, rgba(88, 86, 214, 0.07), transparent 30%),
+                radial-gradient(circle at 80% 80%, rgba(52, 199, 89, 0.08), transparent 32%),
+                var(--ios-bg);
+    color: var(--ios-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    position: relative;
+    min-height: 100vh;
+}
+
+body.ios-skin::before,
+body.ios-skin::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(300px circle at 10% 30%, rgba(10, 132, 255, 0.06), transparent 40%),
+                radial-gradient(240px circle at 90% 70%, rgba(52, 199, 89, 0.05), transparent 45%);
+    z-index: -1;
+}
+
+body.ios-skin a {
+    color: var(--ios-primary);
+}
+
+/* Header */
+body.ios-skin #header {
+    margin: 16px;
+    padding: 14px 18px;
+    border-radius: calc(var(--ios-radius) + 2px);
+    border: 1px solid var(--ios-border);
+    background: var(--ios-surface);
+    backdrop-filter: var(--ios-blur);
+    box-shadow: var(--ios-shadow);
+}
+
+body.ios-skin #header h1 {
+    color: var(--ios-text);
+    letter-spacing: 0.2px;
+}
+
+body.ios-skin #chat-controls button,
+body.ios-skin #model-config-button {
+    border: none;
+    background: linear-gradient(135deg, #0a84ff, #4db7ff);
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 12px 28px rgba(10, 132, 255, 0.28);
+    font-weight: 600;
+}
+
+/* Tabs */
+body.ios-skin .tab-container {
+    margin: 0 16px 12px 16px;
+    padding: 8px;
+    border-radius: 22px;
+    border: 1px solid var(--ios-border);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: var(--ios-blur);
+    box-shadow: var(--ios-soft-shadow);
+    gap: 10px;
+}
+
+body.ios-skin .tab-link {
+    flex: 1;
+    border-radius: 14px;
+    border: 1px solid var(--ios-border);
+    background: var(--ios-surface-strong);
+    color: var(--ios-muted);
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+body.ios-skin .tab-link.active {
+    background: linear-gradient(135deg, #0a84ff, #4da3ff);
+    color: #fff;
+    border-color: #0a84ff;
+    box-shadow: 0 12px 26px rgba(10, 132, 255, 0.25);
+}
+
+body.ios-skin .tab-content {
+    padding: 0 16px 16px;
+    background: transparent;
+    gap: 16px;
+}
+
+/* Panels & cards */
+body.ios-skin #chat-view {
+    gap: var(--ios-card-gap);
+    padding: 0 2px 4px;
+    background: transparent;
+}
+
+body.ios-skin #left-toolbar,
+body.ios-skin #settings-container {
+    background: var(--ios-surface);
+    border: 1px solid var(--ios-border);
+    border-radius: var(--ios-radius);
+    box-shadow: var(--ios-shadow);
+    backdrop-filter: var(--ios-blur);
+}
+
+body.ios-skin #left-toolbar .setting label,
+body.ios-skin #settings-container .setting label {
+    color: var(--ios-muted);
+    font-weight: 600;
+}
+
+body.ios-skin #chat-container {
+    background: var(--ios-surface);
+    border: 1px solid var(--ios-border);
+    border-radius: var(--ios-radius);
+    box-shadow: var(--ios-shadow);
+    backdrop-filter: var(--ios-blur);
+}
+
+body.ios-skin .info-panel {
+    background: var(--ios-surface-strong);
+    border: 1px solid var(--ios-border);
+    border-radius: var(--ios-radius);
+    box-shadow: var(--ios-soft-shadow);
+}
+
+/* Form controls */
+body.ios-skin input,
+body.ios-skin textarea,
+body.ios-skin select {
+    border: 1px solid var(--ios-border);
+    border-radius: 14px;
+    background: var(--ios-surface-strong);
+    color: var(--ios-text);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.ios-skin input:focus,
+body.ios-skin textarea:focus,
+body.ios-skin select:focus {
+    border-color: #0a84ff;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+/* Custom select */
+body.ios-skin .custom-select {
+    border: 1px solid var(--ios-border);
+    border-radius: 14px;
+    background: var(--ios-surface-strong);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+body.ios-skin .custom-select-trigger {
+    padding: 10px 12px;
+    font-weight: 600;
+    color: var(--ios-text);
+}
+
+body.ios-skin .custom-options {
+    border: 1px solid var(--ios-border);
+    background: var(--ios-surface-strong);
+    box-shadow: var(--ios-soft-shadow);
+}
+
+body.ios-skin .custom-option {
+    font-weight: 600;
+    color: var(--ios-text);
+}
+
+body.ios-skin .custom-option.selected,
+body.ios-skin .custom-option:hover {
+    background: var(--ios-primary-soft);
+    color: #0a84ff;
+}
+
+/* Toggles */
+body.ios-skin .toggle-switch .slider {
+    background: #e5e5ea;
+    border-color: #d1d1d6;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+body.ios-skin .toggle-switch .slider:before {
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+body.ios-skin .toggle-switch input:checked + .slider {
+    background: linear-gradient(135deg, #34c759, #30d158);
+    border-color: #30d158;
+}
+
+/* Chat */
+body.ios-skin #input-container {
+    border: 1px solid var(--ios-border);
+    border-radius: 24px;
+    background: var(--ios-surface);
+    box-shadow: var(--ios-soft-shadow);
+}
+
+body.ios-skin #message-input {
+    background: #f7f7fb;
+    border-radius: 16px;
+    border: 1px solid var(--ios-border);
+    padding: 12px 14px;
+    font-size: 15px;
+}
+
+body.ios-skin #send-button,
+body.ios-skin #load-chat-button,
+body.ios-skin #save-chat-button,
+body.ios-skin #clear-chat-button {
+    border-radius: 14px;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, #0a84ff, #4da3ff);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 12px 26px rgba(10, 132, 255, 0.25);
+}
+
+body.ios-skin #clear-chat-button {
+    background: linear-gradient(135deg, #f2f4f7, #e9ecf2);
+    color: var(--ios-text);
+    border-color: var(--ios-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+body.ios-skin .message {
+    border: 1px solid var(--ios-border);
+    background: #fff;
+    box-shadow: var(--ios-soft-shadow);
+    border-radius: 18px;
+}
+
+body.ios-skin .user-message {
+    background: linear-gradient(135deg, #0a84ff, #409cff);
+    color: #fff;
+    border: none;
+    box-shadow: 0 12px 26px rgba(10, 132, 255, 0.25);
+}
+
+body.ios-skin .bot-message {
+    background: #fefefe;
+    border-color: var(--ios-border);
+    color: var(--ios-text);
+}
+
+body.ios-skin .message-actions button {
+    border-radius: 12px;
+    border: 1px solid var(--ios-border);
+    background: #f7f7fb;
+    color: var(--ios-text);
+}
+
+/* Popups */
+body.ios-skin .help-popup-content,
+body.ios-skin .auto-fill-popup-content {
+    background: var(--ios-surface-strong);
+    border-radius: calc(var(--ios-radius) + 4px);
+    border: 1px solid var(--ios-border);
+    box-shadow: var(--ios-shadow);
+    backdrop-filter: var(--ios-blur);
+}
+
+body.ios-skin .help-popup-header,
+body.ios-skin .auto-fill-popup-header {
+    border-bottom: 1px solid var(--ios-border);
+}
+
+/* Scenario tab */
+body.ios-skin #scenario-container {
+    background: transparent;
+}
+
+body.ios-skin .scenario-section,
+body.ios-skin .yaml-editor-view-container,
+body.ios-skin .yaml-form-view-container {
+    border: 1px solid var(--ios-border);
+    background: var(--ios-surface);
+    border-radius: var(--ios-radius);
+    box-shadow: var(--ios-soft-shadow);
+}
+
+body.ios-skin .yaml-editor-header,
+body.ios-skin .form-view-header {
+    background: #f5f6fb;
+    border-bottom: 1px solid var(--ios-border);
+}
+
+/* Preset tab */
+body.ios-skin .preset-manager {
+    background: transparent;
+}
+
+body.ios-skin .preset-header {
+    border-bottom-color: var(--ios-border);
+}
+
+body.ios-skin #preset-test-results,
+body.ios-skin #simple-result-table {
+    border-color: var(--ios-border);
+    background: var(--ios-surface);
+    box-shadow: var(--ios-soft-shadow);
+}
+
+body.ios-skin #simple-result-summary {
+    background: #111827;
+    border-radius: 12px;
+}
+
+/* Parallel tab */
+body.ios-skin #parallel-tab {
+    background: transparent;
+}
+
+body.ios-skin .pt-panel {
+    background: var(--ios-surface);
+    border: 1px solid var(--ios-border);
+    box-shadow: var(--ios-shadow);
+}
+
+body.ios-skin .pt-section {
+    background: #f8f9ff;
+}
+
+/* Auth & utility pages */
+body.ios-skin #login-container,
+body.ios-skin .demo-card {
+    background: transparent;
+}
+
+body.ios-skin .login-card,
+body.ios-skin .demo-card {
+    background: var(--ios-surface);
+    border: 1px solid var(--ios-border);
+    border-radius: calc(var(--ios-radius) + 2px);
+    box-shadow: var(--ios-shadow);
+    backdrop-filter: var(--ios-blur);
+}
+
+body.ios-skin .login-btn,
+body.ios-skin .demo-card button {
+    background: linear-gradient(135deg, #0a84ff, #4da3ff);
+    box-shadow: 0 12px 28px rgba(10, 132, 255, 0.25);
+}
+
+body.ios-skin .form-group input {
+    border-color: var(--ios-border);
+    background: var(--ios-surface-strong);
+}
+
+/* Lightweight helper */
+.ios-pill {
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: #f2f2f7;
+    color: var(--ios-muted);
+    border: 1px solid var(--ios-border);
+}

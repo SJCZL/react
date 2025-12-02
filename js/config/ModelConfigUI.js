@@ -67,6 +67,29 @@ export class ModelConfigUI {
                             <div class="model-grid" id="model-grid">
                                 ${this.renderModels()}
                             </div>
+                            <div class="custom-models-section">
+                                <div class="custom-model-actions">
+                                    <button id="add-model-button" class="btn-secondary">➕ 添加自定义模型</button>
+                                </div>
+                                <div class="add-model-form" id="add-model-form" style="display: none;">
+                                    <div class="form-row">
+                                        <input type="text" id="model-id-input" placeholder="模型 ID（必填）" />
+                                        <input type="text" id="model-name-input" placeholder="模型名称（必填）" />
+                                    </div>
+                                    <div class="form-row">
+                                        <input type="number" id="model-max-tokens-input" placeholder="最大 tokens（可选）" value="4096" />
+                                        <input type="text" id="model-price-input" placeholder="价格（可选）" />
+                                        <input type="text" id="model-desc-input" placeholder="模型描述（可选）" />
+                                    </div>
+                                    <div class="form-actions">
+                                        <button id="save-model" class="btn-primary">保存模型</button>
+                                        <button id="cancel-add-model" class="btn-secondary">取消</button>
+                                    </div>
+                                </div>
+                                <div class="custom-models-grid" id="custom-models-grid">
+                                    ${this.renderCustomModels()}
+                                </div>
+                            </div>
                         </div>
 
                         <!-- API密钥配置 -->
@@ -188,17 +211,30 @@ export class ModelConfigUI {
      * 渲染模型列表
      */
     renderModels() {
-        const currentProvider = modelConfig.getCurrentProvider();
-        if (!currentProvider) return '<p>请选择服务商</p>';
+        const models = modelConfig.getProviderModels(modelConfig.currentProvider);
+        if (!models || models.length === 0) return '<p>请选择服务商</p>';
 
-        return currentProvider.models.map(model => `
-            <div class="model-card ${modelConfig.currentModel === model.id ? 'active' : ''}"
-                 data-model="${model.id}">
-                <div class="model-name">${model.name}</div>
-                <div class="model-tokens">${model.maxTokens.toLocaleString()} tokens</div>
-                ${model.description ? `<div class="model-desc">${model.description}</div>` : ''}
-            </div>
-        `).join('');
+        return models.map(model => {
+            const hasTokenInfo = Number.isFinite(Number(model.maxTokens));
+            const tokenText = hasTokenInfo ? `${Number(model.maxTokens).toLocaleString()} tokens` : 'token上限未知';
+            const badge = model.isCustom ? '<span class="model-badge">自定义</span>' : '';
+            const price = modelConfig.getModelPrice(modelConfig.currentProvider, model.id);
+            const priceText = price !== null && price !== undefined && price !== '' ? `${price}` : '未设置价格';
+
+            return `
+                <div class="model-card ${modelConfig.currentModel === model.id ? 'active' : ''}"
+                     data-model="${model.id}" ${model.isCustom ? 'data-custom="true"' : ''}>
+                    <div class="model-name-row">
+                        <span class="model-name">${model.name}</span>
+                        ${badge}
+                    </div>
+                    <div class="model-id">${model.id}</div>
+                    <div class="model-tokens">${tokenText}</div>
+                    <div class="model-price">价格：${priceText}</div>
+                    ${model.description ? `<div class="model-desc">${model.description}</div>` : ''}
+                </div>
+            `;
+        }).join('');
     }
 
     /**
@@ -216,6 +252,7 @@ export class ModelConfigUI {
         const temperature = tempInput ? tempInput.value : '0.3';
         const topP = topPInput ? topPInput.value : '0.97';
         const modelName = modelInput ? modelInput.value : currentModel?.name || '';
+        const price = modelConfig.getModelPrice(modelConfig.currentProvider, currentModel?.id) ?? '';
 
         return `
             <div class="parameter-group">
@@ -227,6 +264,11 @@ export class ModelConfigUI {
                 <label for="model-top-p">Top P (top_p)</label>
                 <input type="number" id="model-top-p" min="0" max="1" step="0.01" value="${topP}" />
                 <span class="param-desc">控制生成内容的多样性，0-1之间</span>
+            </div>
+            <div class="parameter-group">
+                <label for="model-price">模型价格（每千token）</label>
+                <input type="text" id="model-price" placeholder="例：每 1K token 价格" value="${price}" />
+                <span class="param-desc">用于预算或展示，支持数字或字符串格式</span>
             </div>
             <div class="parameter-group">
                 <label for="model-name-display">当前模型</label>
@@ -284,16 +326,50 @@ export class ModelConfigUI {
     }
 
     /**
+     * 渲染自定义模型列表
+     */
+    renderCustomModels() {
+        const providerId = modelConfig.currentProvider;
+        const customModels = modelConfig.customModels?.[providerId] || [];
+        if (customModels.length === 0) {
+            return '<p class="no-custom-models">当前服务商暂无自定义模型</p>';
+        }
+
+        return customModels.map(model => {
+            const maxTokens = Number.isFinite(Number(model.maxTokens)) ? Number(model.maxTokens).toLocaleString() : '未指定上限';
+            const price = modelConfig.getModelPrice(providerId, model.id);
+            const priceText = price !== null && price !== undefined && price !== '' ? price : '未设置价格';
+            return `
+                <div class="custom-model-card" data-model="${model.id}">
+                    <div class="custom-model-info">
+                        <div class="custom-model-name">${model.name}</div>
+                        <div class="custom-model-meta">${model.id} · ${maxTokens}</div>
+                        <div class="custom-model-meta">价格：${priceText}</div>
+                        ${model.description ? `<div class="custom-model-desc">${model.description}</div>` : ''}
+                    </div>
+                    <div class="provider-actions">
+                        <button class="btn-small delete-model" data-model="${model.id}">删除</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
      * 渲染当前配置信息
      */
     renderCurrentConfig() {
         const provider = modelConfig.getCurrentProvider();
         const model = modelConfig.getCurrentModel();
+        const maxTokens = Number.isFinite(Number(model?.maxTokens)) ? Number(model.maxTokens).toLocaleString() : '未指定';
+        const price = modelConfig.getModelPrice(modelConfig.currentProvider, model?.id);
+        const priceText = price !== null && price !== undefined && price !== '' ? price : '未设置';
         return `
             <div class="config-info">
                 <p><strong>服务商：</strong>${provider.name}</p>
                 <p><strong>模型：</strong>${model.name}</p>
-                <p><strong>最大token：</strong>${model.maxTokens.toLocaleString()}</p>
+                <p><strong>最大token：</strong>${maxTokens}</p>
+                <p><strong>模型价格：</strong>${priceText}</p>
                 <p><strong>API地址：</strong><span class="api-url">${modelConfig.getApiUrl()}</span></p>
             </div>
         `;
@@ -390,6 +466,34 @@ export class ModelConfigUI {
             }
         });
 
+        // 添加自定义模型
+        const addModelBtn = this.container.querySelector('#add-model-button');
+        if (addModelBtn) {
+            addModelBtn.addEventListener('click', () => {
+                this.showAddModelForm();
+            });
+        }
+
+        const saveModelBtn = this.container.querySelector('#save-model');
+        if (saveModelBtn) {
+            saveModelBtn.addEventListener('click', () => this.saveCustomModel());
+        }
+
+        const cancelModelBtn = this.container.querySelector('#cancel-add-model');
+        if (cancelModelBtn) {
+            cancelModelBtn.addEventListener('click', () => this.hideAddModelForm());
+        }
+
+        const customModelsGrid = this.container.querySelector('#custom-models-grid');
+        if (customModelsGrid) {
+            customModelsGrid.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-model')) {
+                    const modelId = e.target.dataset.model;
+                    this.deleteCustomModel(modelId);
+                }
+            });
+        }
+
         // 添加自定义服务商按钮
         const addProviderBtn = this.container.querySelector('#add-new-provider');
         addProviderBtn.addEventListener('click', () => {
@@ -422,6 +526,14 @@ export class ModelConfigUI {
         modelParams.addEventListener('input', (e) => {
             if (e.target.id === 'model-temp' || e.target.id === 'model-top-p') {
                 this.syncParametersToMainUI();
+            }
+            if (e.target.id === 'model-price') {
+                const priceValue = e.target.value;
+                const currentModel = modelConfig.getCurrentModel();
+                if (currentModel) {
+                    modelConfig.setModelPrice(modelConfig.currentProvider, currentModel.id, priceValue);
+                    document.dispatchEvent(new CustomEvent('modelConfigChanged'));
+                }
             }
         });
 
@@ -522,9 +634,21 @@ export class ModelConfigUI {
         const keysGrid = this.container.querySelector('#keys-grid');
         keysGrid.innerHTML = this.renderAllProviderKeys();
 
+        // 更新自定义模型列表
+        const customModelsGrid = this.container.querySelector('#custom-models-grid');
+        if (customModelsGrid) {
+            customModelsGrid.innerHTML = this.renderCustomModels();
+        }
+
         // 更新自定义服务商网格
         const customProvidersGrid = this.container.querySelector('#custom-providers-grid');
         customProvidersGrid.innerHTML = this.renderCustomProviders();
+
+        // 切换服务商后隐藏新增模型表单
+        const addModelForm = this.container.querySelector('#add-model-form');
+        if (addModelForm) {
+            addModelForm.style.display = 'none';
+        }
 
         // 重新绑定模型选择事件
         this.setupModelSelectionEvents();
@@ -558,7 +682,88 @@ export class ModelConfigUI {
             if (e.target.id === 'model-temp' || e.target.id === 'model-top-p') {
                 this.syncParametersToMainUI();
             }
+            if (e.target.id === 'model-price') {
+                const priceValue = e.target.value;
+                const currentModel = modelConfig.getCurrentModel();
+                if (currentModel) {
+                    modelConfig.setModelPrice(modelConfig.currentProvider, currentModel.id, priceValue);
+                    document.dispatchEvent(new CustomEvent('modelConfigChanged'));
+                }
+            }
         });
+    }
+
+    /**
+     * 显示添加模型表单
+     */
+    showAddModelForm() {
+        const form = this.container.querySelector('#add-model-form');
+        if (form) {
+            form.style.display = 'block';
+            const formInputs = form.querySelectorAll('input');
+            formInputs.forEach(input => {
+                input.value = input.defaultValue || '';
+            });
+        }
+    }
+
+    /**
+     * 隐藏添加模型表单
+     */
+    hideAddModelForm() {
+        const form = this.container.querySelector('#add-model-form');
+        if (form) {
+            form.style.display = 'none';
+        }
+    }
+
+    /**
+     * 保存自定义模型
+     */
+    saveCustomModel() {
+        const modelId = this.container.querySelector('#model-id-input')?.value.trim();
+        const modelName = this.container.querySelector('#model-name-input')?.value.trim();
+        const maxTokensValue = this.container.querySelector('#model-max-tokens-input')?.value.trim();
+        const priceValue = this.container.querySelector('#model-price-input')?.value.trim();
+        const modelDesc = this.container.querySelector('#model-desc-input')?.value.trim();
+
+        if (!modelId || !modelName) {
+            this.showNotification('请填写模型 ID 和名称', 'error');
+            return;
+        }
+
+        const maxTokens = maxTokensValue ? parseInt(maxTokensValue, 10) : undefined;
+        const model = {
+            id: modelId,
+            name: modelName,
+            maxTokens: Number.isFinite(maxTokens) ? maxTokens : undefined,
+            description: modelDesc || '',
+            price: priceValue || undefined
+        };
+
+        if (modelConfig.addCustomModel(modelConfig.currentProvider, model)) {
+            this.showNotification('模型添加成功', 'success');
+            this.hideAddModelForm();
+            this.updateDisplay();
+            document.dispatchEvent(new CustomEvent('modelConfigChanged'));
+        } else {
+            this.showNotification('模型添加失败：请检查是否重复或提供商不存在', 'error');
+        }
+    }
+
+    /**
+     * 删除自定义模型
+     */
+    deleteCustomModel(modelId) {
+        if (!modelId) return;
+        const providerName = modelConfig.getCurrentProvider()?.name || '';
+        if (confirm(`确定要删除模型 "${modelId}" 吗？`)) {
+            if (modelConfig.removeCustomModel(modelConfig.currentProvider, modelId)) {
+                this.showNotification(`模型 ${modelId} 已删除`, 'success');
+                this.updateDisplay();
+                document.dispatchEvent(new CustomEvent('modelConfigChanged'));
+            }
+        }
     }
 
     /**
@@ -804,6 +1009,15 @@ export class ModelConfigUI {
                 modelConfig.currentModel = config.currentModel;
                 if (config.apiKey) {
                     modelConfig.apiKey = config.apiKey;
+                }
+                if (config.customProviders) {
+                    modelConfig.customProviders = config.customProviders;
+                }
+                if (config.customModels) {
+                    modelConfig.customModels = config.customModels;
+                }
+                if (config.modelPrices) {
+                    modelConfig.modelPrices = config.modelPrices;
                 }
                 modelConfig.saveConfig();
                 this.updateDisplay();
@@ -1171,6 +1385,105 @@ export class ModelConfigUI {
 
             .notification.info {
                 background: #17a2b8;
+            }
+
+            .model-name-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 6px;
+            }
+
+            .model-id {
+                font-size: 11px;
+                color: #777;
+                word-break: break-all;
+                margin-bottom: 4px;
+            }
+
+            .model-badge {
+                background: #f0f4ff;
+                color: #0d6efd;
+                border: 1px solid #cfe2ff;
+                border-radius: 10px;
+                padding: 2px 8px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .custom-models-section {
+                margin-top: 12px;
+                padding: 12px;
+                border: 1px dashed #e0e4ea;
+                border-radius: 8px;
+                background: #fafbff;
+            }
+
+            .custom-model-actions {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 10px;
+            }
+
+            .add-model-form {
+                border: 1px solid #e9ecef;
+                padding: 12px;
+                border-radius: 8px;
+                background: #fff;
+                margin-bottom: 12px;
+            }
+
+            .add-model-form .form-row {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+
+            .add-model-form input {
+                flex: 1;
+            }
+
+            .custom-models-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 8px;
+            }
+
+            .custom-model-card {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 12px;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                background: #fff;
+            }
+
+            .custom-model-info {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .custom-model-name {
+                font-weight: 600;
+                color: #333;
+            }
+
+            .custom-model-meta {
+                font-size: 12px;
+                color: #666;
+            }
+
+            .custom-model-desc {
+                font-size: 12px;
+                color: #555;
+            }
+
+            .no-custom-models {
+                margin: 0;
+                color: #777;
+                font-size: 13px;
             }
 
             @keyframes slideInRight {

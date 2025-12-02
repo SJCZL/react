@@ -27,7 +27,8 @@ export class PresetManager {
             },
             '并行测试': {
                 '初始消息': 'pt-initial-message',
-                '自动回复提示': 'pt-auto-response'
+                '自动回复提示': 'pt-auto-response',
+                '聊天系统提示（同步自主对话）': 'pt-chat-system-prompt'
             }
         };
         this.isOnline = false; // 标记是否使用API模式
@@ -41,6 +42,7 @@ export class PresetManager {
         const textboxesRaw = Array.isArray(p.textboxes) ? p.textboxes
             : (Array.isArray(p.textBoxes) ? p.textBoxes : []);
         return {
+            id: p.id || null,
             name: p.name || '',
             description: p.description || '',
             tabs,
@@ -183,7 +185,7 @@ export class PresetManager {
 
         if (this.isOnline) {
             try {
-                // API模式：保存到后端
+                // API模式：根据是否已有同名/已有ID决定创建或更新
                 const apiData = {
                     name: normalized.name,
                     description: normalized.description,
@@ -192,23 +194,31 @@ export class PresetManager {
                     text: normalized.text
                 };
 
-                const response = await apiManager.createPrompt(apiData);
-                const createdPreset = response.data.prompt;
+                const existingIndex = this.presets.findIndex(p => p.name === normalized.name);
+                const existingPreset = existingIndex !== -1 ? this.presets[existingIndex] : null;
 
-                // 更新本地缓存
+                let savedPreset = null;
+                if (existingPreset && existingPreset.id) {
+                    // 更新已有记录
+                    const response = await apiManager.updatePrompt(existingPreset.id, apiData);
+                    savedPreset = response.data.prompt || response.prompt || response; // 兼容后端返回格式
+                } else {
+                    // 新建
+                    const response = await apiManager.createPrompt(apiData);
+                    savedPreset = response.data.prompt || response.prompt || response;
+                }
+
                 const localPreset = {
-                    id: createdPreset.id,
-                    name: createdPreset.name,
-                    description: createdPreset.description,
-                    tabs: createdPreset.tabs,
-                    textboxes: createdPreset.textboxes,
-                    text: createdPreset.text,
-                    created_at: createdPreset.created_at,
-                    updated_at: createdPreset.updated_at
+                    id: savedPreset.id,
+                    name: savedPreset.name,
+                    description: savedPreset.description,
+                    tabs: Array.isArray(savedPreset.tabs) ? savedPreset.tabs : [],
+                    textboxes: Array.isArray(savedPreset.textboxes) ? savedPreset.textboxes : [],
+                    text: savedPreset.text,
+                    created_at: savedPreset.created_at,
+                    updated_at: savedPreset.updated_at
                 };
 
-                // 检查是否已存在
-                const existingIndex = this.presets.findIndex(p => p.name === localPreset.name);
                 if (existingIndex !== -1) {
                     this.presets[existingIndex] = localPreset;
                 } else {
@@ -225,7 +235,9 @@ export class PresetManager {
             // 本地模式：原有逻辑
             const existingIndex = this.presets.findIndex(p => p.name === normalized.name);
             if (existingIndex !== -1) {
-                this.presets[existingIndex] = normalized;
+                // 保留已有 id（若有）
+                const existing = this.presets[existingIndex];
+                this.presets[existingIndex] = { ...normalized, id: existing.id || normalized.id };
             } else {
                 this.presets.push(normalized);
             }

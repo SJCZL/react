@@ -32,6 +32,71 @@
     gap: 10px;
 }
 
+#preset-test-results {
+    background: linear-gradient(135deg, #f7fbff 0%, #f2f4ff 60%, #eef2ff 100%);
+    border: 1px solid #dce6ff;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    padding: 16px 18px;
+}
+
+#preset-test-results .card-header h3 {
+    font-size: 18px;
+    color: #0f172a;
+}
+
+#simple-result-summary {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#simple-result-table {
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+#simple-result-table th {
+    background: #f5f7fb;
+    color: #1f2937;
+}
+
+#simple-result-table td {
+    color: #374151;
+}
+
+#simple-result-table tbody tr:nth-child(odd) td {
+    background: #fafbff;
+}
+
+#simple-result-table tbody tr:hover td {
+    background: #eef2ff;
+}
+
+#simple-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+#simple-charts > div {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+#simple-top-errors-table table {
+    border: none;
+}
+
 .preset-btn {
     padding: 10px 30px;
     background-color: #fff;
@@ -395,6 +460,31 @@
     padding: 20px;
     overflow-y: auto;
     max-height: calc(90vh - 140px);
+}
+
+/* Enlarged chart modal for test results */
+.result-chart-modal {
+    z-index: 11000;
+}
+
+.result-chart-modal .result-chart-modal-content {
+    width: 92vw;
+    max-width: 1280px;
+    max-height: 90vh;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 0 auto;
+}
+
+.result-chart-modal .preset-modal-body {
+    max-height: 80vh;
+    overflow: auto;
+}
+
+.result-chart-modal .preset-modal-header h3 {
+    font-size: 18px;
 }
 
 .form-group {

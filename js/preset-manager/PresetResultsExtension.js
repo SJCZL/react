@@ -17,6 +17,7 @@ import {
   const rootId = 'preset-details-content';
   const panelId = 'preset-test-results';
   let lastAgg = null;
+  let lastStatistics = {};
 
   const waitForElement = (selector, { timeout = 10000 } = {}) =>
     new Promise((resolve, reject) => {
@@ -107,8 +108,45 @@ import {
     return `${Math.round(n)}ms`;
   };
 
+  const openChartModal = (title, renderFn, height = 520) => {
+    if (typeof renderFn !== 'function') return;
+    const existing = document.getElementById('result-chart-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'result-chart-modal';
+    overlay.className = 'preset-modal result-chart-modal';
+    overlay.innerHTML = `
+      <div class="preset-modal-content result-chart-modal-content">
+        <div class="preset-modal-header">
+          <h3>${title || '可视化'}</h3>
+          <span id="close-result-chart-modal" class="close-modal">&times;</span>
+        </div>
+        <div class="preset-modal-body" style="padding: 12px;">
+          <div id="result-chart-modal-canvas" style="width:100%;height:${height}px;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+    const closeBtn = overlay.querySelector('#close-result-chart-modal');
+    closeBtn?.addEventListener('click', close);
+
+    // Render inside the modal
+    try {
+      renderFn('result-chart-modal-canvas', lastStatistics);
+    } catch (err) {
+      console.warn('[PresetResultsExtension] Failed to render zoomed chart', err);
+    }
+  };
+
   const renderAggregate = (agg) => {
     lastAgg = agg;
+    lastStatistics = agg?.statistics || {};
     const summaryEl = document.getElementById('simple-result-summary');
     const table = document.getElementById('simple-result-table');
     const tbody = table?.querySelector('tbody');
@@ -257,6 +295,20 @@ import {
       renderLatencyChart(latencyChartEl, stats);
       renderMetricsChart(metricsChartEl, stats);
       renderErrorPie('simple-chart-pie', stats);
+      const attachZoom = (domId, title, renderer, opts = {}) => {
+        const chartEl = document.getElementById(domId);
+        if (!chartEl) return;
+        chartEl.style.cursor = 'zoom-in';
+        chartEl.onclick = () => {
+          if (!lastStatistics || !Object.keys(lastStatistics).length) return;
+          openChartModal(title, renderer, opts.height || 560);
+        };
+      };
+      attachZoom('simple-chart-model', '模型通过/失败对比', (id, data) => renderModelCompare(id, data));
+      attachZoom('simple-chart-severity', '严重等级分布', (id, data) => renderSeverityStacked(id, data));
+      attachZoom('simple-chart-latency', '耗时分布', (id, data) => renderLatencyChart(document.getElementById(id), data), { height: 600 });
+      attachZoom('simple-chart-metrics', 'Tokens/成本指标', (id, data) => renderMetricsChart(document.getElementById(id), data), { height: 620 });
+      attachZoom('simple-chart-pie', '错误类型占比', (id, data) => renderErrorPie(id, data), { height: 520 });
       if (topSelect) {
         topSelect.innerHTML = '';
         const optAll = document.createElement('option');
