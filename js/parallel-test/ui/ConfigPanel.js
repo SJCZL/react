@@ -36,6 +36,32 @@ const state = {
   _tempGlobalClickHandler: null // internal reference to the global click handler while preview is active
 };
 
+function getActivePresetRoot() {
+  if (state.tempActive) {
+    state.tempPreset = state.tempPreset || JSON.parse(JSON.stringify(state.preset || {}));
+    return state.tempPreset;
+  }
+  state.preset = state.preset || {};
+  return state.preset;
+}
+
+function getPresetSection(type) {
+  const root = state.tempActive ? (state.tempPreset || state.preset || {}) : (state.preset || {});
+  if (type === 'eval') return root.evaluation || {};
+  return root.dialogue || {};
+}
+
+function setPresetValue(path, value) {
+  const targetRoot = getActivePresetRoot();
+  const parts = path.split('.');
+  let obj = targetRoot;
+  for (let i = 0; i < parts.length - 1; i++) {
+    obj[parts[i]] = obj[parts[i]] || {};
+    obj = obj[parts[i]];
+  }
+  obj[parts[parts.length - 1]] = value;
+}
+
 function ensureContainers() {
   const parallel = document.getElementById('parallel-container');
   if (!parallel) return;
@@ -600,7 +626,11 @@ function populateProviderOptionsForPT(selectElement, type) {
     if (!selectElement || !window.modelConfig) return;
 
     const providers = window.modelConfig.getProviders();
-    const currentProvider = window.modelConfig.getCurrentProvider();
+    const section = getPresetSection(type === 'eval' ? 'eval' : 'dialogue');
+    let selectedProviderId = section.provider || window.modelConfig.currentProvider;
+    if (!selectedProviderId && providers.length > 0) {
+        selectedProviderId = providers[0].id;
+    }
 
     // 清空现有选项
     selectElement.innerHTML = '';
@@ -615,25 +645,36 @@ function populateProviderOptionsForPT(selectElement, type) {
       const option = document.createElement('option');
       option.value = provider.id;
       option.textContent = provider.name;
-      if (provider.id === window.modelConfig.currentProvider) {
+      if (provider.id === selectedProviderId) {
         option.selected = true;
       }
       selectElement.appendChild(option);
 
       // 添加自定义选择器选项
-      addCustomSelectOption(`pt-${type}-provider-options`, provider.id, provider.name, provider.id === window.modelConfig.currentProvider);
+      addCustomSelectOption(`pt-${type}-provider-options`, provider.id, provider.name, provider.id === selectedProviderId);
     });
 
-    // 更新自定义选择器显示
-    updateCustomSelectTrigger(`pt-${type}-provider-trigger`, currentProvider ? currentProvider.name : '选择服务商');
+    if (selectedProviderId) {
+      selectElement.value = selectedProviderId;
+      if (!section.provider) {
+        setPresetValue(type === 'eval' ? 'evaluation.provider' : 'dialogue.provider', selectedProviderId);
+      }
+    }
+
+    const selectedProvider = providers.find(p => p.id === selectedProviderId);
+    updateCustomSelectTrigger(`pt-${type}-provider-trigger`, selectedProvider ? selectedProvider.name : '选择服务商');
 }
 
-function populateModelOptionsForPT(selectElement, type) {
+function populateModelOptionsForPT(selectElement, type, providerOverride = null, selectedModelOverride = null) {
    if (!selectElement || !window.modelConfig) return;
 
-   const currentProvider = window.modelConfig.getCurrentProvider();
-   const models = currentProvider ? currentProvider.models : [];
-   const currentModel = window.modelConfig.getCurrentModel();
+   const section = getPresetSection(type === 'eval' ? 'eval' : 'dialogue');
+   const providerId = providerOverride || section.provider || window.modelConfig.currentProvider;
+   const models = window.modelConfig.getProviderModels(providerId) || [];
+   let selectedModelId = selectedModelOverride || section.model || (models[0] ? models[0].id : '');
+   if (selectedModelId && !models.some(m => m.id === selectedModelId)) {
+     selectedModelId = models[0] ? models[0].id : '';
+   }
 
    // 清空现有选项
    selectElement.innerHTML = '';
@@ -648,30 +689,26 @@ function populateModelOptionsForPT(selectElement, type) {
      const option = document.createElement('option');
      option.value = model.id;
      option.textContent = model.name;
-     if (model.id === window.modelConfig.currentModel) {
+     if (model.id === selectedModelId) {
        option.selected = true;
      }
      selectElement.appendChild(option);
 
      // 添加自定义选择器选项
-     addCustomSelectOption(`pt-${type}-model-options`, model.id, model.name, model.id === window.modelConfig.currentModel);
+     addCustomSelectOption(`pt-${type}-model-options`, model.id, model.name, model.id === selectedModelId);
    });
 
-   // 设置默认选中项（暂时选择第一个）
-   if (models.length > 0 && !selectElement.value) {
-     selectElement.value = models[0].id;
-     // 更新自定义选择器的选中状态
-     if (customOptions) {
-         customOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-         const firstOption = customOptions.querySelector('.custom-option');
-         if (firstOption) {
-             firstOption.classList.add('selected');
-         }
+   if (selectedModelId) {
+     selectElement.value = selectedModelId;
+     if (!section.model) {
+       setPresetValue(type === 'eval' ? 'evaluation.model' : 'dialogue.model', selectedModelId);
      }
    }
 
+   const selectedModel = models.find(m => m.id === selectedModelId);
+
    // 更新自定义选择器显示
-   updateCustomSelectTrigger(`pt-${type}-model-trigger`, currentModel ? currentModel.name : '选择模型');
+   updateCustomSelectTrigger(`pt-${type}-model-trigger`, selectedModel ? selectedModel.name : '选择模型');
    
    // 重新初始化自定义选择器以绑定新选项的事件
    setupCustomSelectForModel(`pt-${type}-model-trigger`, `pt-${type}-model-options`, `pt-${type}-model`, type, selectElement);
@@ -704,23 +741,19 @@ function bindProviderModelEvents(type) {
    if (!providerSelect || !modelSelect) return;
 
    console.log(`[ConfigPanel] Binding ${type} model events`);
+   const prefix = type === 'eval' ? 'evaluation' : 'dialogue';
 
-   // 清除可能已存在的事件监听器（直接清除）
    const providerChangeHandler = (e) => {
      const providerId = e.target.value;
      console.log(`[ConfigPanel] Provider changed for ${type}: ${providerId}`);
-
-     if (window.modelConfig && window.modelConfig.switchProvider(providerId)) {
-       populateModelOptionsForPT(modelSelect, type);
-       // 更新隐藏的textarea值
-       updateTextareaFromSelect(modelSelect, type);
-     }
+     setPresetValue(`${prefix}.provider`, providerId);
+     setPresetValue(`${prefix}.model`, null);
+     populateModelOptionsForPT(modelSelect, type, providerId);
    };
 
    const modelChangeHandler = (e) => {
      console.log(`[ConfigPanel] Model changed for ${type}: ${e.target.value}`);
-     // 更新隐藏的textarea值
-     updateTextareaFromSelect(modelSelect, type);
+     setPresetValue(`${prefix}.model`, e.target.value);
    };
 
    // 清除旧的事件监听器
@@ -732,24 +765,6 @@ function bindProviderModelEvents(type) {
    modelSelect.addEventListener('change', modelChangeHandler);
 
    console.log(`[ConfigPanel] Successfully bound ${type} model events`);
-}
-
-function updateTextareaFromSelect(selectElement, type) {
-   // 查找对应的textarea并更新其值
-   const textarea = document.querySelector(`textarea[data-field="${type}-model"]`);
-   if (textarea && selectElement) {
-     textarea.value = selectElement.value;
-     // 触发input事件以更新状态
-     textarea.dispatchEvent(new Event('input'));
-   }
-
-   // 对于并行测试的模型选择，也需要更新隐藏的textarea元素
-   const ptTextarea = document.getElementById(`pt-${type}-model`);
-   if (ptTextarea && selectElement) {
-     ptTextarea.value = selectElement.value;
-     // 触发input事件以更新ConfigPanel状态
-     ptTextarea.dispatchEvent(new Event('input'));
-   }
 }
 
 function bindBasicTabEvents() {
@@ -777,19 +792,13 @@ function bindBasicTabEvents() {
   const endUserEl = root.querySelector('#pt-end-user');
   const concEl = root.querySelector('#pt-concurrency');
 
-  const modelEl = root.querySelector('#pt-eval-model');
   const topPEl = root.querySelector('#pt-eval-top-p');
   const tempEl = root.querySelector('#pt-eval-temp');
   const includePromptEl = root.querySelector('#pt-include-system-prompt');
   const includeUnlistedEl = root.querySelector('#pt-include-unlisted');
 
-  const dialogueModelEl = root.querySelector('#pt-dialogue-model');
-  const dialogueProviderEl = root.querySelector('#pt-dialogue-provider');
   const dialogueTopPEl = root.querySelector('#pt-dialogue-top-p');
   const dialogueTempEl = root.querySelector('#pt-dialogue-temp');
-
-  const evalProviderEl = root.querySelector('#pt-eval-provider');
-  const evalModelEl = root.querySelector('#pt-eval-model');
 
   // Custom select refs for end-type (main chat style)
   const endTypeNative = root.querySelector('#pt-end-type');
@@ -804,19 +813,15 @@ function bindBasicTabEvents() {
   if (endUserEl) endUserEl.addEventListener('input', e => setVal('basic.endCondition.userRegex', e.target.value));
   if (concEl) concEl.addEventListener('input', e => setVal('basic.concurrencyLimit', e.target.valueAsNumber || null));
 
-  if (modelEl) modelEl.addEventListener('input', e => setVal('evaluation.model', e.target.value));
+    // 模型/服务商选择的事件在 bindProviderModelEvents 中处理
   if (topPEl) topPEl.addEventListener('input', e => setVal('evaluation.top_p', e.target.valueAsNumber));
   if (tempEl) tempEl.addEventListener('input', e => setVal('evaluation.temperature', e.target.valueAsNumber));
   if (includePromptEl) includePromptEl.addEventListener('change', e => setVal('evaluation.includeSystemPrompt', !!e.target.checked));
   if (includeUnlistedEl) includeUnlistedEl.addEventListener('change', e => setVal('assessmentOptions.includeUnlistedIssues', !!e.target.checked));
 
-  if (dialogueModelEl) dialogueModelEl.addEventListener('input', e => setVal('dialogue.model', e.target.value));
-  if (dialogueProviderEl) dialogueProviderEl.addEventListener('change', e => setVal('dialogue.provider', e.target.value));
+  // provider/model 的 change 事件另行绑定
   if (dialogueTopPEl) dialogueTopPEl.addEventListener('input', e => setVal('dialogue.top_p', e.target.valueAsNumber));
   if (dialogueTempEl) dialogueTempEl.addEventListener('input', e => setVal('dialogue.temperature', e.target.valueAsNumber));
-
-  if (evalProviderEl) evalProviderEl.addEventListener('change', e => setVal('evaluation.provider', e.target.value));
-  if (evalModelEl) evalModelEl.addEventListener('change', e => setVal('evaluation.model', e.target.value));
 
   // Wire custom select (end type) like main chat
   const updateEndTypeUI = (value) => {

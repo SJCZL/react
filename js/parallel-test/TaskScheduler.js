@@ -32,11 +32,8 @@ import { TaskOrchestrator } from './TaskOrchestrator.js';
 import * as CSV from '../utils/csv.mjs';
 
 export class TaskScheduler {
-  constructor({ apiKey, genCap = 10, evalCap = 10 } = {}) {
-    if (!apiKey) {
-      throw new Error('TaskScheduler requires apiKey');
-    }
-    this.apiKey = apiKey;
+  constructor({ apiKey = null, genCap = 10, evalCap = 10 } = {}) {
+    this.apiKey = apiKey || null;
     this.genCap = genCap;
     this.evalCap = evalCap;
 
@@ -117,7 +114,11 @@ export class TaskScheduler {
     if (this._tasks.has(taskId)) throw new Error('Task id already exists');
     const now = Date.now();
 
-    const orchestrator = new TaskOrchestrator(this.apiKey);
+    const taskApiKey = inputs?.cgsInputs?.apiKeyOverride || this.apiKey;
+    if (!taskApiKey) {
+      throw new Error('TaskScheduler: missing API key for this task（请先在“模型设置”保存相应服务商的 Key）。');
+    }
+    const orchestrator = new TaskOrchestrator(taskApiKey);
     const meta = {
       id: taskId,
       name: name || `task_${taskId.slice(0, 8)}`,
@@ -311,7 +312,11 @@ export class TaskScheduler {
           continue;
         }
         const now = Date.now();
-        const orchestrator = new TaskOrchestrator(this.apiKey);
+        const taskApiKey = inputs?.cgsInputs?.apiKeyOverride || this.apiKey;
+        if (!taskApiKey) {
+          throw new Error('导入的任务缺少 API 密钥，请在 CSV 中包含 cgsInputs.apiKeyOverride。');
+        }
+        const orchestrator = new TaskOrchestrator(taskApiKey);
         // Normalize meta: keep identity/timestamps, reset runtime status/stage to safe defaults
         const meta = {
           id,

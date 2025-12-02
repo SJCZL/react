@@ -43,13 +43,11 @@ export class TaskUIManager {
         this.bindEvents();
         
         // Get API key from model config system
-        const apiKey = modelConfig.apiKey;
+        const apiKey = modelConfig.apiKey || null;
         
-        // Initialize TaskScheduler
-        if (apiKey) {
-            this.scheduler = new TaskScheduler({ apiKey });
-            this.setupTaskEventHandlers();
-        }
+        // Initialize TaskScheduler（即使当前提供商未配置密钥，也允许先创建实例，具体任务可传入覆盖密钥）
+        this.scheduler = new TaskScheduler({ apiKey });
+        this.setupTaskEventHandlers();
         
         // Get chat system prompt from main chat (will be empty if not set, which is correct)
         this.updateChatSystemPrompt();
@@ -192,11 +190,11 @@ export class TaskUIManager {
         // Handle API key changes through model config system
         // Listen for model config changes and update scheduler accordingly
         this.modelConfigChangeHandler = () => {
-            const newApiKey = modelConfig.apiKey;
-            if (newApiKey && !this.scheduler) {
+            const newApiKey = modelConfig.apiKey || null;
+            if (!this.scheduler) {
                 this.scheduler = new TaskScheduler({ apiKey: newApiKey });
                 this.setupTaskEventHandlers();
-            } else if (this.scheduler && newApiKey !== this.scheduler.apiKey) {
+            } else if (newApiKey !== this.scheduler.apiKey) {
                 this.scheduler.apiKey = newApiKey;
             }
         };
@@ -249,6 +247,7 @@ export class TaskUIManager {
                     modelName: config?.cgsInputs?.modelName ?? '',
                     temperature: Number(config?.cgsInputs?.temperature ?? 0),
                     topP: Number(config?.cgsInputs?.topP ?? 0),
+                    providerId: config?.cgsInputs?.providerId ?? ''
                 },
                 // assessment config
                 assessmentConfig: {
@@ -256,6 +255,7 @@ export class TaskUIManager {
                         model: config?.assessmentConfig?.llmConfig?.model ?? '',
                         top_p: Number(config?.assessmentConfig?.llmConfig?.top_p ?? 0),
                         temperature: Number(config?.assessmentConfig?.llmConfig?.temperature ?? 0),
+                        providerId: config?.assessmentConfig?.llmConfig?.providerId ?? ''
                     },
                     mistakeLibrary: {
                         mistakes: Array.isArray(config?.assessmentConfig?.mistakeLibrary?.mistakes)
@@ -270,6 +270,7 @@ export class TaskUIManager {
                         model: config?.ratingConfig?.llmConfig?.model ?? '',
                         top_p: Number(config?.ratingConfig?.llmConfig?.top_p ?? 0),
                         temperature: Number(config?.ratingConfig?.llmConfig?.temperature ?? 0),
+                        providerId: config?.ratingConfig?.llmConfig?.providerId ?? ''
                     },
                     expertPanel: Array.isArray(config?.ratingConfig?.expertPanel)
                         ? config.ratingConfig.expertPanel
@@ -366,8 +367,20 @@ export class TaskUIManager {
             return;
         }
         
-        // Get current config from ConfigPanel
-        const config = this.getCurrentConfig();
+        if (!this.scheduler) {
+            console.error('[TaskUIManager] Scheduler not initialized');
+            return;
+        }
+        
+        let config;
+        try {
+            // Get current config from ConfigPanel
+            config = this.getCurrentConfig();
+        } catch (err) {
+            console.error('[TaskUIManager] Failed to build task config:', err);
+            alert(err.message || '无法生成任务配置，请检查模型设置。');
+            return;
+        }
         if (!config) {
             console.error('[TaskUIManager] Failed to get current config');
             return;
@@ -412,7 +425,24 @@ export class TaskUIManager {
         if (window.ConfigPanel && window.ConfigPanel.state && window.ConfigPanel.state.preset) {
             const preset = window.ConfigPanel.state.preset;
             const mistakes = window.ConfigPanel.state.mistakes || [];
-            
+            const fallbackProviderId = modelConfig.currentProvider;
+            const resolveDefaultModel = (providerId) => {
+                const provider = modelConfig.getProviderConfig(providerId);
+                return provider?.models?.[0]?.id || modelConfig.currentModel;
+            };
+            const dialogueProviderId = preset.dialogue?.provider || fallbackProviderId;
+            const dialogueModel = preset.dialogue?.model || resolveDefaultModel(dialogueProviderId);
+            const evaluationProviderId = preset.evaluation?.provider || dialogueProviderId;
+            const evaluationModel = preset.evaluation?.model || resolveDefaultModel(evaluationProviderId);
+
+            const dialogueApiKey = modelConfig.getApiKeyForProvider(dialogueProviderId);
+            if (!dialogueApiKey) {
+                throw new Error(`Missing API key for provider ${dialogueProviderId}. Please store it via 模型设置 first.`);
+            }
+            const evaluationApiKey = modelConfig.getApiKeyForProvider(evaluationProviderId);
+            if (!evaluationApiKey) {
+                throw new Error(`Missing API key for provider ${evaluationProviderId}. Please store it via 模型设置 first.`);
+            }
             // Ensure expert panel has required properties
             const expertPanel = (preset.experts || []).map(expert => ({
                 field: expert.specialization || expert.field || '对话专家',
@@ -431,18 +461,21 @@ export class TaskUIManager {
                         type: preset.basic?.endCondition?.type || 'assistantRegex',
                         value: preset.basic?.endCondition?.type === 'rounds'
                             ? preset.basic?.endCondition?.rounds
-                            : preset.basic?.endCondition?.[preset.basic?.endCondition?.type + 'Regex'] || '<\\?END_CHAT>'
+                            : preset.basic?.endCondition?.[preset.basic?.endCondition?.type + 'Regex'] || '<\?END_CHAT>'
                     },
-                    // 强制使用当前模型配置，避免预设遗留的模型覆盖实际选择
-                    modelName: modelConfig.currentModel,
+                    modelName: dialogueModel,
                     temperature: preset.dialogue?.temperature || 0.97, // This is for the assistant
-                    topP: preset.dialogue?.top_p || 0.3 // This is for the assistant
+                    topP: preset.dialogue?.top_p || 0.3, // This is for the assistant
+                    providerId: dialogueProviderId,
+                    apiKeyOverride: dialogueApiKey
                 },
                 assessmentConfig: {
                     llmConfig: {
-                        model: preset.evaluation?.model || modelConfig.currentModel,
+                        model: evaluationModel,
                         top_p: preset.evaluation?.top_p || 0.97,
-                        temperature: preset.evaluation?.temperature || 0.75
+                        temperature: preset.evaluation?.temperature || 0.75,
+                        providerId: evaluationProviderId,
+                        apiKey: evaluationApiKey
                     },
                     // 将错误库转换为按名称/ID索引的字典，便于提示与匹配
                     mistakeLibrary: (() => {
@@ -460,9 +493,11 @@ export class TaskUIManager {
                 },
                 ratingConfig: {
                     llmConfig: {
-                        model: preset.evaluation?.model || modelConfig.currentModel,
+                        model: evaluationModel,
                         top_p: preset.evaluation?.top_p || 0.97,
-                        temperature: preset.evaluation?.temperature || 0.75
+                        temperature: preset.evaluation?.temperature || 0.75,
+                        providerId: evaluationProviderId,
+                        apiKey: evaluationApiKey
                     },
                     expertPanel: expertPanel,
                     includeSystemPrompt: preset.evaluation?.includeSystemPrompt !== false
@@ -472,7 +507,6 @@ export class TaskUIManager {
         
         return null;
     }
-
     /**
      * Build a ConfigPanel-style preset object from the internal task inputs (TaskOrchestrator format).
      * Includes only the 'basic', 'evaluation', 'dialogue' sections and chatSystemPrompt (no mistakes/experts).
@@ -491,12 +525,14 @@ export class TaskUIManager {
             },
             sceneInfo: inputs.cgsInputs?.sceneInfo || '',
             evaluation: {
+                provider: inputs.assessmentConfig?.llmConfig?.providerId || '',
                 model: inputs.assessmentConfig?.llmConfig?.model || '',
                 top_p: inputs.assessmentConfig?.llmConfig?.top_p,
                 temperature: inputs.assessmentConfig?.llmConfig?.temperature,
                 includeSystemPrompt: inputs.ratingConfig?.includeSystemPrompt !== false
             },
             dialogue: {
+                provider: inputs.cgsInputs?.providerId || '',
                 model: inputs.cgsInputs?.modelName || '',
                 top_p: inputs.cgsInputs?.topP,
                 temperature: inputs.cgsInputs?.temperature
@@ -576,12 +612,20 @@ export class TaskUIManager {
                     </div>
                 </div>
 
+                <div class="task-metrics-chip" data-task-id="${taskId}" title="查看技术指标">
+                    <span class="task-metrics-label">响应</span>
+                    <span class="task-metrics-value">--</span>
+                </div>
+
                 <div class="task-chat-text-container">
                     <div class="task-chat-text" data-task-id="${taskId}"></div>
                 </div>
                 <div class="task-score-container">
                     <div class="task-score" data-task-id="${taskId}"></div>
                 </div>
+            </div>
+            <div class="task-metrics-dropdown">
+                <div class="task-dropdown-content" id="metrics-dropdown-${taskId}"></div>
             </div>
             <div class="task-mistakes-dropdown">
                 <div class="task-dropdown-content" id="mistakes-dropdown-${taskId}"></div>
@@ -633,10 +677,13 @@ export class TaskUIManager {
             expertScore: null,
             assessmentResult: null,
             ratingResult: null,
+            latencyMs: null,
+            techMetrics: null,
             pendingChunks: [], // Queue for chunks to be displayed
             chunkDisplayInterval: null, // Interval for displaying chunks
             mistakesExpanded: false,
-            scoreExpanded: false
+            scoreExpanded: false,
+            metricsExpanded: false
         });
         
         // Add click event listeners
@@ -839,11 +886,16 @@ export class TaskUIManager {
         if (!taskData) return;
         
         taskData.startTime = Date.now();
+        taskData.latencyMs = null;
+        taskData.techMetrics = null;
+        taskData.metricsExpanded = false;
         taskData.chatText = '';
         taskData.chatHtml = '';
         taskData.currentRole = payload.role;
         taskData.pendingChunks = [];
         taskData.conversationLength = 0; // reset rounds tracking at start
+        this.clearMetricsDropdown(taskId);
+        this.updateMetricsChip(taskId);
         
         // Clear any existing chunk display interval
         if (taskData.chunkDisplayInterval) {
@@ -1000,6 +1052,11 @@ export class TaskUIManager {
     handleTaskComplete(taskId, payload) {
         const taskData = this.tasks.get(taskId);
         if (!taskData) return;
+
+        const finishedAt = Date.now();
+        if (typeof taskData.startTime === 'number') {
+            taskData.latencyMs = finishedAt - taskData.startTime;
+        }
         
         // Stop blinking in case it's still running
         const mistakesEl = taskData.element.querySelector('.task-mistakes-indicator');
@@ -1065,6 +1122,17 @@ export class TaskUIManager {
             const td = this.tasks.get(taskId);
             const model = td?.inputs?.cgsInputs?.modelName || modelConfig.currentModel || 'model';
             const assessment = payload?.assessmentResult || td?.assessmentResult || null;
+            const chatRecord = payload?.chatRecord || td?.chatRecord || null;
+            const techMetrics = this.computeTechMetrics(chatRecord?.conversation || []);
+            taskData.techMetrics = techMetrics;
+            this.updateMetricsChip(taskId);
+            if (taskData.metricsExpanded) {
+                const metricsDropdownContent = document.getElementById(`metrics-dropdown-${taskId}`);
+                if (metricsDropdownContent) {
+                    metricsDropdownContent.innerHTML = '';
+                    this.populateMetricsDetails(taskId, metricsDropdownContent);
+                }
+            }
 
             // 汇总各严重级别错误并拍平错误名
             const getNames = (arr) => {
@@ -1082,6 +1150,15 @@ export class TaskUIManager {
 
             const pm = window.presetUIManager?.currentPreset;
             const presetId = pm?.id || 0;
+            const techMetricsSummary = techMetrics ? {
+                overall_avg_latency_ms: techMetrics.overall?.avgLatencyMs ?? undefined,
+                overall_p95_latency_ms: techMetrics.overall?.p95LatencyMs ?? undefined,
+                assistant_avg_latency_ms: techMetrics.assistant?.avgLatencyMs ?? undefined,
+                assistant_p95_latency_ms: techMetrics.assistant?.p95LatencyMs ?? undefined,
+                assistant_first_token_avg_ms: techMetrics.assistant?.firstTokenAvgMs ?? undefined,
+                assistant_turns: techMetrics.assistant?.count ?? undefined,
+                message_count: techMetrics.messages?.length ?? undefined
+            } : undefined;
             const sample = {
                 preset_id: presetId,
                 model,
@@ -1095,7 +1172,10 @@ export class TaskUIManager {
                     Unlisted: summary.Unlisted.length
                 },
                 score: (typeof payload?.ratingResult?.finalScore === 'number') ? payload.ratingResult.finalScore : undefined,
-                latency_ms: undefined
+                latency_ms: (typeof td?.latencyMs === 'number' && Number.isFinite(td.latencyMs))
+                    ? Math.round(td.latencyMs)
+                    : undefined,
+                tech_metrics: techMetricsSummary
             };
             this._resultsForPreset.push(sample);
             // Also make last results visible to preset results panel if needed
@@ -1317,6 +1397,7 @@ export class TaskUIManager {
         const mistakesIndicator = taskEl.querySelector('.task-mistakes-indicator');
         const scoreContainer = taskEl.querySelector('.task-score-container');
         const chatTextContainer = taskEl.querySelector('.task-chat-text-container');
+        const metricsChip = taskEl.querySelector('.task-metrics-chip');
  
         // Strict fast double-click handler: only very fast double clicks trigger preview.
         // We implement our own timing-based detector (short threshold) so that normal
@@ -1396,6 +1477,14 @@ export class TaskUIManager {
 
             this.toggleScoreDropdown(taskId);
         });
+
+        // Handle clicks on the metrics chip
+        if (metricsChip) {
+            metricsChip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleMetricsDropdown(taskId);
+            });
+        }
     }
 
     /**
@@ -1425,6 +1514,10 @@ export class TaskUIManager {
         // Close score dropdown if it's open (mutually exclusive)
         if (taskData.scoreExpanded) {
             this.toggleScoreDropdown(taskId);
+        }
+        // Close metrics dropdown if it's open
+        if (taskData.metricsExpanded) {
+            this.toggleMetricsDropdown(taskId);
         }
 
         // Expand mistakes dropdown
@@ -1468,6 +1561,9 @@ export class TaskUIManager {
         if (taskData.mistakesExpanded) {
             this.toggleMistakesDropdown(taskId);
         }
+        if (taskData.metricsExpanded) {
+            this.toggleMetricsDropdown(taskId);
+        }
 
         // Expand score dropdown
         taskEl.classList.add('score-expanded');
@@ -1479,6 +1575,57 @@ export class TaskUIManager {
             if (scoreDropdownContent && !scoreDropdownContent.hasChildNodes()) {
                 this.populateScoreDetails(taskId, scoreDropdownContent);
             }
+        }
+    }
+
+    /**
+     * Toggle metrics dropdown expansion
+     * @param {string} taskId - Task ID
+     */
+    toggleMetricsDropdown(taskId) {
+        const taskData = this.tasks.get(taskId);
+        if (!taskData) return;
+
+        const taskEl = taskData.element;
+
+        if (taskData.metricsExpanded) {
+            taskEl.classList.remove('metrics-expanded');
+            taskData.metricsExpanded = false;
+            setTimeout(() => {
+                if (!taskData.metricsExpanded) {
+                    this.clearMetricsDropdown(taskId);
+                }
+            }, 300);
+            return;
+        }
+
+        if (taskData.mistakesExpanded) {
+            this.toggleMistakesDropdown(taskId);
+        }
+        if (taskData.scoreExpanded) {
+            this.toggleScoreDropdown(taskId);
+        }
+
+        taskEl.classList.add('metrics-expanded');
+        taskData.metricsExpanded = true;
+
+        const metricsDropdownContent = document.getElementById(`metrics-dropdown-${taskId}`);
+        if (metricsDropdownContent && !metricsDropdownContent.hasChildNodes()) {
+            this.populateMetricsDetails(taskId, metricsDropdownContent);
+        }
+    }
+
+    /**
+     * Clear metrics dropdown content
+     * @param {string} taskId - Task ID
+     */
+    clearMetricsDropdown(taskId) {
+        const taskData = this.tasks.get(taskId);
+        if (!taskData) return;
+
+        const metricsDropdownContent = document.getElementById(`metrics-dropdown-${taskId}`);
+        if (metricsDropdownContent) {
+            metricsDropdownContent.innerHTML = '';
         }
     }
 
@@ -1686,6 +1833,139 @@ export class TaskUIManager {
         }
     }
 
+    computeTechMetrics(conversation = []) {
+        const safeConv = Array.isArray(conversation) ? conversation : [];
+        const statsFor = (values = []) => {
+            const arr = values.filter(v => Number.isFinite(v));
+            if (!arr.length) return { avgLatencyMs: null, p95LatencyMs: null, min: null, max: null, count: 0 };
+            const sorted = [...arr].sort((a, b) => a - b);
+            const avg = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+            const p95Idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+            return {
+                avgLatencyMs: avg,
+                p95LatencyMs: sorted[p95Idx],
+                min: sorted[0],
+                max: sorted[sorted.length - 1],
+                count: arr.length
+            };
+        };
+
+        const messages = safeConv.map((msg, idx) => {
+            const m = msg?.metrics || {};
+            const started = Number.isFinite(m.startedAt) ? m.startedAt : null;
+            const ended = Number.isFinite(m.endedAt) ? m.endedAt : null;
+            const latency = Number.isFinite(m.latencyMs)
+                ? m.latencyMs
+                : (Number.isFinite(started) && Number.isFinite(ended) ? ended - started : null);
+            const firstTokenLatency = Number.isFinite(m.firstTokenLatencyMs)
+                ? m.firstTokenLatencyMs
+                : (Number.isFinite(started) && Number.isFinite(m.firstTokenAt) ? m.firstTokenAt - started : null);
+            return {
+                index: idx + 1,
+                role: msg?.role || 'assistant',
+                latencyMs: latency,
+                firstTokenMs: firstTokenLatency
+            };
+        });
+
+        const overallLatencies = messages.map(m => m.latencyMs);
+        const overallFirst = messages.map(m => m.firstTokenMs);
+        const assistantLatencies = messages.filter(m => m.role === 'assistant').map(m => m.latencyMs);
+        const assistantFirst = messages.filter(m => m.role === 'assistant').map(m => m.firstTokenMs);
+        const userLatencies = messages.filter(m => m.role === 'user').map(m => m.latencyMs);
+        const userFirst = messages.filter(m => m.role === 'user').map(m => m.firstTokenMs);
+
+        const overallStats = statsFor(overallLatencies);
+        const assistantStats = statsFor(assistantLatencies);
+        const userStats = statsFor(userLatencies);
+
+        return {
+            messages,
+            overall: { ...overallStats, firstTokenAvgMs: statsFor(overallFirst).avgLatencyMs },
+            assistant: { ...assistantStats, firstTokenAvgMs: statsFor(assistantFirst).avgLatencyMs },
+            user: { ...userStats, firstTokenAvgMs: statsFor(userFirst).avgLatencyMs }
+        };
+    }
+
+    formatLatency(ms) {
+        return Number.isFinite(ms) ? `${Math.round(ms)}ms` : '--';
+    }
+
+    updateMetricsChip(taskId) {
+        const taskData = this.tasks.get(taskId);
+        if (!taskData) return;
+        const chip = taskData.element.querySelector('.task-metrics-chip .task-metrics-value');
+        if (!chip) return;
+        const metrics = taskData.techMetrics;
+        const display = metrics?.assistant?.avgLatencyMs ?? metrics?.overall?.avgLatencyMs;
+        chip.textContent = this.formatLatency(display);
+    }
+
+    populateMetricsDetails(taskId, container) {
+        const taskData = this.tasks.get(taskId);
+        if (!taskData) return;
+        const metrics = taskData.techMetrics;
+        container.innerHTML = '';
+
+        if (!metrics) {
+            const empty = document.createElement('div');
+            empty.className = 'dropdown-empty-state';
+            empty.textContent = '暂无技术指标';
+            container.appendChild(empty);
+            return;
+        }
+
+        const summary = document.createElement('div');
+        summary.className = 'metrics-summary';
+        summary.innerHTML = `
+            <div class="metrics-pill">
+                <span>AI 平均响应</span>
+                <div class="metrics-pill-right">
+                    <strong>${this.formatLatency(metrics.assistant?.avgLatencyMs)}</strong>
+                    <span class="metrics-sub">P95 ${this.formatLatency(metrics.assistant?.p95LatencyMs)}</span>
+                </div>
+            </div>
+            <div class="metrics-pill">
+                <span>首 token 平均</span>
+                <div class="metrics-pill-right">
+                    <strong>${this.formatLatency(metrics.assistant?.firstTokenAvgMs)}</strong>
+                    <span class="metrics-sub">所有消息 ${this.formatLatency(metrics.overall?.firstTokenAvgMs)}</span>
+                </div>
+            </div>
+            <div class="metrics-pill alt">
+                <span>全局平均响应</span>
+                <div class="metrics-pill-right">
+                    <strong>${this.formatLatency(metrics.overall?.avgLatencyMs)}</strong>
+                    <span class="metrics-sub">P95 ${this.formatLatency(metrics.overall?.p95LatencyMs)}｜消息 ${metrics.messages?.length || 0}</span>
+                </div>
+            </div>
+        `;
+        container.appendChild(summary);
+
+        const table = document.createElement('table');
+        table.className = 'metrics-table';
+        const rows = (metrics.messages || []).map(m => `
+            <tr>
+                <td>${m.index}</td>
+                <td>${m.role === 'assistant' ? 'AI' : '用户'}</td>
+                <td>${this.formatLatency(m.latencyMs)}</td>
+                <td>${this.formatLatency(m.firstTokenMs)}</td>
+            </tr>
+        `).join('');
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>角色</th>
+                    <th>完成耗时</th>
+                    <th>首 token</th>
+                </tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="4">暂无消息</td></tr>'}</tbody>
+        `;
+        container.appendChild(table);
+    }
+
     updateExpertScore(taskId) {
         const taskData = this.tasks.get(taskId);
         if (!taskData) return;
@@ -1766,7 +2046,7 @@ export class TaskUIManager {
         // Check if any dropdown is open
         let hasOpenDropdown = false;
         for (const [taskId, taskData] of this.tasks) {
-            if (taskData.mistakesExpanded || taskData.scoreExpanded) {
+            if (taskData.mistakesExpanded || taskData.scoreExpanded || taskData.metricsExpanded) {
                 hasOpenDropdown = true;
                 break;
             }
@@ -1792,8 +2072,9 @@ export class TaskUIManager {
             // If clicked on the mistakes indicator or score container, let the click handlers handle it
             const clickedOnMistakes = e.target.closest('.task-mistakes-indicator');
             const clickedOnScore = e.target.closest('.task-score-container');
+            const clickedOnMetrics = e.target.closest('.task-metrics-chip');
             
-            if (!clickedOnMistakes && !clickedOnScore) {
+            if (!clickedOnMistakes && !clickedOnScore && !clickedOnMetrics) {
                 // If clicked elsewhere inside the task bubble but not on the indicators, close dropdowns
                 this.closeTaskDropdowns(clickedTaskId);
             }
@@ -1805,7 +2086,7 @@ export class TaskUIManager {
      */
     closeAllDropdowns() {
         for (const [taskId, taskData] of this.tasks) {
-            if (taskData.mistakesExpanded || taskData.scoreExpanded) {
+            if (taskData.mistakesExpanded || taskData.scoreExpanded || taskData.metricsExpanded) {
                 this.closeTaskDropdowns(taskId);
             }
         }
@@ -1825,6 +2106,10 @@ export class TaskUIManager {
         
         if (taskData.scoreExpanded) {
             this.toggleScoreDropdown(taskId);
+        }
+
+        if (taskData.metricsExpanded) {
+            this.toggleMetricsDropdown(taskId);
         }
     }
 

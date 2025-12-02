@@ -24,6 +24,33 @@ function extractErrorSummary(assessment) {
   };
 }
 
+function computeAssistantLatency(conversation = []) {
+  const msgs = Array.isArray(conversation) ? conversation : [];
+  const latencies = [];
+  const firsts = [];
+  for (const msg of msgs) {
+    if ((msg?.role || '').toLowerCase() !== 'assistant') continue;
+    const m = msg?.metrics || {};
+    const started = Number(m.startedAt);
+    const ended = Number(m.endedAt);
+    const latency = Number.isFinite(m.latencyMs)
+      ? m.latencyMs
+      : (Number.isFinite(started) && Number.isFinite(ended) ? ended - started : null);
+    if (Number.isFinite(latency)) latencies.push(latency);
+    const firstToken = Number.isFinite(m.firstTokenLatencyMs)
+      ? m.firstTokenLatencyMs
+      : (Number.isFinite(started) && Number.isFinite(m.firstTokenAt) ? m.firstTokenAt - started : null);
+    if (Number.isFinite(firstToken)) firsts.push(firstToken);
+  }
+  const avg = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : undefined;
+  const firstAvg = firsts.length ? Math.round(firsts.reduce((a, b) => a + b, 0) / firsts.length) : undefined;
+  return {
+    assistant_avg_latency_ms: avg,
+    assistant_first_token_avg_ms: firstAvg,
+    assistant_turns: latencies.length || undefined
+  };
+}
+
 async function runOnceWithCurrentConfig(preset) {
   // Build inputs from ConfigPanel state with sane fallbacks
   const cp = (window.ConfigPanel && window.ConfigPanel.state) ? window.ConfigPanel.state : {};
@@ -41,11 +68,17 @@ async function runOnceWithCurrentConfig(preset) {
   const endAssistant = pick(p?.basic?.endCondition?.assistantRegex, '<\\?END_CHAT>');
   const endUser = pick(p?.basic?.endCondition?.userRegex, '<\\?END_CHAT>');
 
-  const modelName = pick(p?.dialogue?.model, modelConfig.currentModel);
+  const dialogueProviderId = pick(p?.dialogue?.provider, modelConfig.currentProvider);
+  const evalProviderId = pick(p?.evaluation?.provider, dialogueProviderId);
+  const resolveDefaultModel = (providerId) => {
+    const provider = modelConfig.getProviderConfig(providerId);
+    return provider?.models?.[0]?.id || modelConfig.currentModel;
+  };
+  const modelName = pick(p?.dialogue?.model, resolveDefaultModel(dialogueProviderId));
   const temperature = pick(p?.dialogue?.temperature, 0.97);
   const topP = pick(p?.dialogue?.top_p, 0.3);
 
-  const evalModel = pick(p?.evaluation?.model, modelConfig.currentModel);
+  const evalModel = pick(p?.evaluation?.model, resolveDefaultModel(evalProviderId));
   const evalTopP = pick(p?.evaluation?.top_p, 0.97);
   const evalTemp = pick(p?.evaluation?.temperature, 0.75);
   const emitUnlisted = p?.assessmentOptions?.includeUnlistedIssues !== false;
@@ -63,10 +96,16 @@ async function runOnceWithCurrentConfig(preset) {
   })();
 
   // Prepare orchestrator
-  const apiKey = modelConfig.apiKey;
-  if (!apiKey) throw new Error('缺少API密钥，请先在“模型设置”中配置');
+  const dialogueApiKey = modelConfig.getApiKeyForProvider(dialogueProviderId);
+  if (!dialogueApiKey) {
+    throw new Error(`缺少 ${dialogueProviderId} 的 API 密钥，请先在“模型设置”中配置`);
+  }
+  const evalApiKey = modelConfig.getApiKeyForProvider(evalProviderId);
+  if (!evalApiKey) {
+    throw new Error(`缺少 ${evalProviderId} 的 API 密钥，请先在“模型设置”中配置`);
+  }
 
-  const orchestrator = new TaskOrchestrator(apiKey);
+  const orchestrator = new TaskOrchestrator(dialogueApiKey);
   const inputs = {
     cgsInputs: {
       chatSystemPrompt,
@@ -79,18 +118,33 @@ async function runOnceWithCurrentConfig(preset) {
       },
       modelName,
       temperature,
-      topP
+      topP,
+      providerId: dialogueProviderId,
+      apiKeyOverride: dialogueApiKey
     },
     assessmentConfig: {
-      llmConfig: { model: evalModel, top_p: evalTopP, temperature: evalTemp },
+      llmConfig: {
+        model: evalModel,
+        top_p: evalTopP,
+        temperature: evalTemp,
+        providerId: evalProviderId,
+        apiKey: evalApiKey
+      },
       mistakeLibrary,
       emitUnlistedIssues: emitUnlisted
     },
     ratingConfig: {
-      llmConfig: { model: evalModel, top_p: evalTopP, temperature: evalTemp }
+      llmConfig: {
+        model: evalModel,
+        top_p: evalTopP,
+        temperature: evalTemp,
+        providerId: evalProviderId,
+        apiKey: evalApiKey
+      }
     }
   };
 
+  const startedAt = Date.now();
   // Await completion via a Promise wrapper
   const result = await new Promise((resolve, reject) => {
     const onError = (err) => reject(err);
@@ -108,10 +162,11 @@ async function runOnceWithCurrentConfig(preset) {
   const sampleId = 's-001';
   const errorSummary = extractErrorSummary(result?.assessmentResult || {});
   const errors = [...errorSummary.Error, ...errorSummary.Warning, ...errorSummary.Inform, ...errorSummary.Unlisted];
+  const latencyMs = Date.now() - startedAt;
+  const techMetrics = computeAssistantLatency(result?.chatRecord?.conversation || []);
   return [{
     preset_id: preset?.id || 0,
-    // 强制使用当前模型配置，避免预设遗留的模型覆盖实际选择
-    model: modelConfig.currentModel,
+    model: modelName || modelConfig.currentModel,
     sample_id: sampleId,
     errors,
     errorSummary,
@@ -122,7 +177,8 @@ async function runOnceWithCurrentConfig(preset) {
       Unlisted: errorSummary.Unlisted.length
     },
     score: (typeof result?.ratingResult?.finalScore === 'number') ? result.ratingResult.finalScore : undefined,
-    latency_ms: undefined
+    latency_ms: Number.isFinite(latencyMs) ? Math.round(latencyMs) : undefined,
+    tech_metrics: techMetrics
   }];
 }
 

@@ -5,10 +5,11 @@ import { modelConfig } from '../config/ModelConfig.js';
  * Continuous Generation Service for headless automatic chat generation
  */
 export class ContinuousGenerationService {
-    constructor(apiKey = null) {
+    constructor(apiKey = null, providerId = null) {
         // 使用传入的apiKey或从模型配置获取
-        this.apiKey = apiKey || modelConfig.getApiKeyForProvider(modelConfig.currentProvider);
-        this.apiService = new ApiService(this.apiKey);
+        const resolvedProvider = providerId || modelConfig.currentProvider;
+        this.apiKey = apiKey || modelConfig.getApiKeyForProvider(resolvedProvider);
+        this.apiService = new ApiService(this.apiKey, null, resolvedProvider);
         this.currentSession = null;
         this.abortController = null;
         this.isGenerating = false;
@@ -56,12 +57,20 @@ export class ContinuousGenerationService {
             endCondition = { type: 'roundLimit', value: 10 },
             modelName = modelConfig.currentModel, // 使用模型配置系统中的模型
             temperature = 0.97,
-            topP = 0.3
+            topP = 0.3,
+            providerId = modelConfig.currentProvider,
+            apiKeyOverride = modelConfig.getApiKeyForProvider(providerId)
         } = sessionConfig;
 
         // Validate required parameters
         if (!chatSystemPrompt || !autoresponseSystemPrompt || !initialMessage) {
             throw new Error('Missing required session parameters');
+        }
+        if (!providerId) {
+            throw new Error('未选择对话服务商');
+        }
+        if (!apiKeyOverride) {
+            throw new Error(`未配置 ${providerId} 的 API 密钥，请在“模型设置”中保存后重试`);
         }
 
         this.currentSession = {
@@ -71,9 +80,13 @@ export class ContinuousGenerationService {
             initialMessage,
             endCondition,
             assistantModelName: modelName,
+            assistantProviderId: providerId,
+            assistantApiKey: apiKeyOverride,
             assistantTemperature: temperature,
             assistantTopP: topP,
-            userModelName: modelConfig.currentModel, // 使用模型配置系统中的模型
+            userModelName: modelName,
+            userProviderId: providerId,
+            userApiKey: apiKeyOverride,
             userTemperature: 0.3,
             userTopP: 0.97,
             conversation: [],
@@ -116,7 +129,14 @@ export class ContinuousGenerationService {
         const { initialMessage } = this.currentSession;
         
         // Add initial message
-        this.addMessageToConversation('user', initialMessage);
+        const initialTs = Date.now();
+        this.addMessageToConversation('user', initialMessage, null, {
+            startedAt: initialTs,
+            firstTokenAt: null,
+            endedAt: null,
+            latencyMs: null,
+            firstTokenLatencyMs: null
+        });
         this.emitChunk(initialMessage, 'user');
 
         while (this.isGenerating && !this.abortController.signal.aborted) {
@@ -150,9 +170,17 @@ export class ContinuousGenerationService {
             content: '',
             reasoningContent: null
         };
+        const startedAt = Date.now();
         
-        this.addMessageToConversation(message.role, message.content, message.reasoningContent);
+        this.addMessageToConversation(message.role, message.content, message.reasoningContent, {
+            startedAt,
+            firstTokenAt: null,
+            endedAt: null,
+            latencyMs: null,
+            firstTokenLatencyMs: null
+        });
         const messageIndex = this.currentSession.conversation.length - 1;
+        const metricsRef = this.currentSession.conversation[messageIndex].metrics || {};
 
         const apiMessages = [
             { role: 'system', content: this.currentSession.chatSystemPrompt },
@@ -160,16 +188,16 @@ export class ContinuousGenerationService {
         ];
 
         try {
-            // 使用模型配置系统中的当前提供商和模型
-            const modelSpecificApiService = new ApiService(
-                modelConfig.getApiKeyForProvider(modelConfig.currentProvider),
-                modelConfig.currentModel
-            );
-            const reader = await modelSpecificApiService.streamLLMResponse(
+            const reader = await this.apiService.streamLLMResponse(
                 apiMessages,
                 this.currentSession.assistantTemperature,
                 this.currentSession.assistantTopP,
-                this.abortController.signal
+                this.abortController.signal,
+                {
+                    providerId: this.currentSession.assistantProviderId,
+                    model: this.currentSession.assistantModelName,
+                    apiKey: this.currentSession.assistantApiKey
+                }
             );
 
             const decoder = new TextDecoder();
@@ -196,6 +224,9 @@ export class ContinuousGenerationService {
                             if (content) {
                                 this.currentSession.conversation[messageIndex].content += content;
                                 this.emitChunk(content, 'assistant');
+                                if (!metricsRef.firstTokenAt) {
+                                    metricsRef.firstTokenAt = Date.now();
+                                }
                             }
                             if (reasoningContent) {
                                 if (!this.currentSession.conversation[messageIndex].reasoningContent) {
@@ -220,6 +251,11 @@ export class ContinuousGenerationService {
                 this.currentSession.conversation[messageIndex].content = `Error: ${error.message}`;
                 this.emitChunk(`Error: ${error.message}`, 'assistant');
             }
+        } finally {
+            const endedAt = Date.now();
+            metricsRef.endedAt = endedAt;
+            metricsRef.latencyMs = endedAt - startedAt;
+            metricsRef.firstTokenLatencyMs = metricsRef.firstTokenAt ? metricsRef.firstTokenAt - startedAt : null;
         }
     }
 
@@ -234,9 +270,17 @@ export class ContinuousGenerationService {
             content: '',
             reasoningContent: null
         };
+        const startedAt = Date.now();
         
-        this.addMessageToConversation(message.role, message.content, message.reasoningContent);
+        this.addMessageToConversation(message.role, message.content, message.reasoningContent, {
+            startedAt,
+            firstTokenAt: null,
+            endedAt: null,
+            latencyMs: null,
+            firstTokenLatencyMs: null
+        });
         const messageIndex = this.currentSession.conversation.length - 1;
+        const metricsRef = this.currentSession.conversation[messageIndex].metrics || {};
 
         // Create context for auto-response (swap roles)
         const autoResponseContext = this.currentSession.conversation
@@ -252,16 +296,16 @@ export class ContinuousGenerationService {
         ];
 
         try {
-            // 使用模型配置系统中的当前提供商和模型
-            const modelSpecificApiService = new ApiService(
-                modelConfig.getApiKeyForProvider(modelConfig.currentProvider),
-                modelConfig.currentModel
-            );
-            const reader = await modelSpecificApiService.streamLLMResponse(
+            const reader = await this.apiService.streamLLMResponse(
                 apiMessages,
                 this.currentSession.userTemperature,
                 this.currentSession.userTopP,
-                this.abortController.signal
+                this.abortController.signal,
+                {
+                    providerId: this.currentSession.userProviderId,
+                    model: this.currentSession.userModelName,
+                    apiKey: this.currentSession.userApiKey
+                }
             );
 
             const decoder = new TextDecoder();
@@ -288,6 +332,9 @@ export class ContinuousGenerationService {
                             if (content) {
                                 this.currentSession.conversation[messageIndex].content += content;
                                 this.emitChunk(content, 'user');
+                                if (!metricsRef.firstTokenAt) {
+                                    metricsRef.firstTokenAt = Date.now();
+                                }
                             }
                             if (reasoningContent) {
                                 if (!this.currentSession.conversation[messageIndex].reasoningContent) {
@@ -307,6 +354,11 @@ export class ContinuousGenerationService {
                 this.currentSession.conversation[messageIndex].content = `Error: ${error.message}`;
                 this.emitChunk(`Error: ${error.message}`, 'user');
             }
+        } finally {
+            const endedAt = Date.now();
+            metricsRef.endedAt = endedAt;
+            metricsRef.latencyMs = endedAt - startedAt;
+            metricsRef.firstTokenLatencyMs = metricsRef.firstTokenAt ? metricsRef.firstTokenAt - startedAt : null;
         }
     }
 
@@ -356,9 +408,19 @@ export class ContinuousGenerationService {
      * @param {string} content - Message content
      * @param {string} reasoningContent - Reasoning content (optional)
      */
-    addMessageToConversation(role, content, reasoningContent = null) {
+    addMessageToConversation(role, content, reasoningContent = null, metrics = {}) {
         const id = this.generateMessageId();
-        this.currentSession.conversation.push({ id, role, content, reasoningContent });
+        const now = Date.now();
+        const normalizedMetrics = {
+            startedAt: Number.isFinite(metrics.startedAt) ? metrics.startedAt : now,
+            firstTokenAt: Number.isFinite(metrics.firstTokenAt) ? metrics.firstTokenAt : null,
+            endedAt: Number.isFinite(metrics.endedAt) ? metrics.endedAt : null,
+            latencyMs: Number.isFinite(metrics.latencyMs) ? metrics.latencyMs : null,
+            firstTokenLatencyMs: Number.isFinite(metrics.firstTokenLatencyMs) ? metrics.firstTokenLatencyMs : null
+        };
+        const message = { id, role, content, reasoningContent, metrics: normalizedMetrics };
+        this.currentSession.conversation.push(message);
+        return message;
     }
 
     /**

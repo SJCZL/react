@@ -5,22 +5,27 @@ import { modelConfig } from '../config/ModelConfig.js';
  * Base Service class for common functionality
  */
 export class BaseService {
-    constructor(apiKey = null, modelName = null) {
+    constructor(apiKey = null, modelName = null, providerId = null) {
         // 使用传入的参数或从模型配置系统获取
-        this.apiKey = apiKey || modelConfig.getApiKeyForProvider(modelConfig.currentProvider);
+        this.apiKey = apiKey || modelConfig.getApiKeyForProvider(providerId || modelConfig.currentProvider);
         this.modelName = modelName || modelConfig.currentModel;
-        this.apiService = new ApiService(this.apiKey, this.modelName);
+        this.providerId = providerId || modelConfig.currentProvider;
+        this.apiService = new ApiService(this.apiKey, this.modelName, this.providerId);
     }
 
     /**
      * 更新配置以使用模型配置系统
      */
-    updateConfig() {
-        this.apiKey = modelConfig.getApiKeyForProvider(modelConfig.currentProvider);
+    updateConfig(providerId = null) {
+        const targetProvider = providerId || modelConfig.currentProvider;
+        this.apiKey = modelConfig.getApiKeyForProvider(targetProvider);
         this.modelName = modelConfig.currentModel;
-        this.apiService.apiKey = this.apiKey;
-        this.apiService.modelName = this.modelName;
-        this.apiService.updateConfig();
+        this.providerId = targetProvider;
+        this.apiService.updateConfig({
+            providerId: targetProvider,
+            modelName: this.modelName,
+            apiKey: this.apiKey
+        });
     }
 
     /**
@@ -29,10 +34,13 @@ export class BaseService {
      * @param {Object} llmConfig - LLM configuration
      * @returns {Promise<string>} - LLM response
      */
-    async getLLMResponse(messages, llmConfig, signal = undefined) {
+    async getLLMResponse(messages, llmConfig = {}, signal = undefined) {
         const {
             temperature = 0.3,
-            topP = 0.9
+            topP = 0.9,
+            model: overrideModel,
+            providerId: overrideProvider,
+            apiKey: overrideApiKey
         } = llmConfig;
 
         try {
@@ -40,7 +48,12 @@ export class BaseService {
                 messages,
                 temperature,
                 topP,
-                signal
+                signal,
+                {
+                    model: overrideModel,
+                    providerId: overrideProvider,
+                    apiKey: overrideApiKey
+                }
             );
 
             const decoder = new TextDecoder();

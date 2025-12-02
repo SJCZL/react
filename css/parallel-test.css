@@ -1257,9 +1257,38 @@
     display: none;
 }
 
+/* Metrics dropdown area */
+.task-metrics-dropdown {
+    display: none;
+    width: 100%;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    overflow: hidden;
+    contain: layout;
+    flex-shrink: 0;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+}
+
+.task-bubble.metrics-expanded .task-metrics-dropdown {
+    display: block;
+    max-height: 500px;
+    opacity: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.task-bubble.metrics-expanded .task-metrics-dropdown::-webkit-scrollbar {
+    display: none;
+}
+
 /* Temporary collapsed state for scroll calculations */
 .task-bubble.temp-collapsed .task-mistakes-dropdown,
-.task-bubble.temp-collapsed .task-score-dropdown {
+.task-bubble.temp-collapsed .task-score-dropdown,
+.task-bubble.temp-collapsed .task-metrics-dropdown {
     display: none;
 }
 
@@ -1287,6 +1316,60 @@
     font-size: 13px;
     color: #374151;
     line-height: 1.5;
+}
+
+/* Metrics summary + table */
+.metrics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.metrics-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #f6f7fb;
+}
+.metrics-pill.alt {
+    background: #f9fafb;
+}
+.metrics-pill-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.metrics-pill strong {
+    font-size: 14px;
+    color: #111827;
+}
+.metrics-sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.metrics-table th,
+.metrics-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+.metrics-table th {
+    background: #f9fafb;
+    font-weight: 600;
+}
+.metrics-table tr:nth-child(even) td {
+    background: #fcfcfd;
 }
 
 /* Mistake details styling */
@@ -1657,6 +1740,35 @@
 .mistake-gap {
     width: 12px;
     flex-shrink: 0;
+}
+
+.task-metrics-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    margin-right: 8px;
+    border-radius: 14px;
+    background: #eef2ff;
+    border: 1px solid #d5dcff;
+    color: #1f2937;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.task-metrics-chip:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: translateY(-1px);
+    border-color: #c3cdfc;
+}
+.task-metrics-label {
+    font-size: 12px;
+    color: #6b7280;
+}
+.task-metrics-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
 }
 
 /* Score container - positioned to the right of the text bar */

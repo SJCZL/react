@@ -3,6 +3,12 @@
 export function analyzeResultsByModel(results, presetId) {
   const stats = {};
   let total = 0;
+  let latencySum = 0;
+  let latencyCount = 0;
+  let assistantLatencySum = 0;
+  let assistantLatencyCount = 0;
+  let assistantFirstSum = 0;
+  let assistantFirstCount = 0;
   const normStr = (s) => (typeof s === 'string' ? s.trim() : String(s || 'UNKNOWN'));
 
   for (const item of results || []) {
@@ -17,11 +23,44 @@ export function analyzeResultsByModel(results, presetId) {
         errors: {},
         // New: severity aggregation and per-type-per-severity
         errorsBySeverity: { Inform: 0, Warning: 0, Error: 0, Unlisted: 0 },
-        errorTypesBySeverity: { Inform: {}, Warning: {}, Error: {}, Unlisted: {} }
+        errorTypesBySeverity: { Inform: {}, Warning: {}, Error: {}, Unlisted: {} },
+        _latencySum: 0,
+        _latencyCount: 0,
+        _assistantLatencySum: 0,
+        _assistantLatencyCount: 0,
+        _assistantFirstSum: 0,
+        _assistantFirstCount: 0
       };
     }
     stats[model].total += 1;
     total += 1;
+
+    const latency = Number(item.latency_ms);
+    if (Number.isFinite(latency) && latency >= 0) {
+      stats[model]._latencySum += latency;
+      stats[model]._latencyCount += 1;
+      latencySum += latency;
+      latencyCount += 1;
+    }
+
+    const tech = item.tech_metrics || item.techMetrics || null;
+    const assistantTurnCount = Number(tech?.assistant_turns || tech?.assistant_turn_count);
+    const assistantTurnAvg = Number(tech?.assistant_avg_latency_ms);
+    if (Number.isFinite(assistantTurnAvg) && Number.isFinite(assistantTurnCount) && assistantTurnCount > 0) {
+      const weighted = assistantTurnAvg * assistantTurnCount;
+      stats[model]._assistantLatencySum += weighted;
+      stats[model]._assistantLatencyCount += assistantTurnCount;
+      assistantLatencySum += weighted;
+      assistantLatencyCount += assistantTurnCount;
+    }
+    const assistantFirstAvg = Number(tech?.assistant_first_token_avg_ms);
+    if (Number.isFinite(assistantFirstAvg) && Number.isFinite(assistantTurnCount) && assistantTurnCount > 0) {
+      const weightedFirst = assistantFirstAvg * assistantTurnCount;
+      stats[model]._assistantFirstSum += weightedFirst;
+      stats[model]._assistantFirstCount += assistantTurnCount;
+      assistantFirstSum += weightedFirst;
+      assistantFirstCount += assistantTurnCount;
+    }
 
     // Prefer structured summary if present
     const sum = item.errorSummary || null;
@@ -29,10 +68,14 @@ export function analyzeResultsByModel(results, presetId) {
     if (sum) {
       const severities = ['Error','Warning','Inform','Unlisted'];
       let any = 0;
+      let warnErrCount = 0;
       for (const sev of severities) {
         const names = Array.isArray(sum[sev]) ? sum[sev] : [];
         stats[model].errorsBySeverity[sev] += names.length;
         any += names.length;
+        if (sev === 'Error' || sev === 'Warning' || sev === 'Unlisted') {
+          warnErrCount += names.length;
+        }
         for (const raw of names) {
           const name = normStr(raw);
           // per-type-per-severity
@@ -42,7 +85,7 @@ export function analyzeResultsByModel(results, presetId) {
           flatErrors.push(name);
         }
       }
-      if (any === 0) stats[model].pass += 1; else stats[model].fail += 1;
+      if (warnErrCount === 0) stats[model].pass += 1; else stats[model].fail += 1;
     } else {
       // Fallback: use legacy item.errors flat list
       const errs = Array.isArray(item.errors) ? item.errors : [];
@@ -63,8 +106,25 @@ export function analyzeResultsByModel(results, presetId) {
   }
 
   for (const m of Object.keys(stats)) {
-    const { total, pass } = stats[m];
+    const { total, pass, _latencySum = 0, _latencyCount = 0 } = stats[m];
     stats[m].passRate = total > 0 ? Math.round((pass / total) * 100) : 0;
+    if (_latencyCount > 0) {
+      stats[m].avg_latency_ms = Math.round(_latencySum / _latencyCount);
+      stats[m].latency_samples = _latencyCount;
+    }
+    if (stats[m]._assistantLatencyCount > 0) {
+      stats[m].assistant_avg_turn_latency_ms = Math.round(stats[m]._assistantLatencySum / stats[m]._assistantLatencyCount);
+      stats[m].assistant_latency_samples = stats[m]._assistantLatencyCount;
+    }
+    if (stats[m]._assistantFirstCount > 0) {
+      stats[m].assistant_first_token_avg_ms = Math.round(stats[m]._assistantFirstSum / stats[m]._assistantFirstCount);
+    }
+    delete stats[m]._latencySum;
+    delete stats[m]._latencyCount;
+    delete stats[m]._assistantLatencySum;
+    delete stats[m]._assistantLatencyCount;
+    delete stats[m]._assistantFirstSum;
+    delete stats[m]._assistantFirstCount;
   }
 
   return {
@@ -72,7 +132,12 @@ export function analyzeResultsByModel(results, presetId) {
       preset_id: presetId,
       models_tested: Object.keys(stats),
       total_samples: total,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      avg_latency_ms: latencyCount > 0 ? Math.round(latencySum / latencyCount) : undefined,
+      latency_samples: latencyCount,
+      avg_assistant_turn_latency_ms: assistantLatencyCount > 0 ? Math.round(assistantLatencySum / assistantLatencyCount) : undefined,
+      avg_assistant_first_token_ms: assistantFirstCount > 0 ? Math.round(assistantFirstSum / assistantFirstCount) : undefined,
+      assistant_latency_samples: assistantLatencyCount
     },
     statistics: stats
   };

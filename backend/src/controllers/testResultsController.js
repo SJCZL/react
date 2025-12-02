@@ -482,7 +482,10 @@ export const getRunSummary = [
                   COUNT(*) AS total,
                   SUM(passed = 1) AS passed,
                   AVG(latency_ms) AS avg_latency_ms,
-                  AVG(COALESCE(input_tokens,0) + COALESCE(output_tokens,0)) AS avg_tokens
+                  AVG(COALESCE(input_tokens,0) + COALESCE(output_tokens,0)) AS avg_tokens,
+                  SUM(COALESCE(input_tokens,0) + COALESCE(output_tokens,0)) AS total_tokens,
+                  AVG(cost) AS avg_cost,
+                  SUM(COALESCE(cost,0)) AS total_cost
            FROM test_cases
            WHERE test_run_id = ?
            GROUP BY model`,
@@ -562,6 +565,13 @@ export const getRunSummary = [
         return statistics[key];
       };
 
+      let latencySum = 0;
+      let latencyCount = 0;
+      let tokenSum = 0;
+      let costSum = 0;
+      let hasTokenData = false;
+      let hasCostData = false;
+
       modelRows.forEach(row => {
         const model = row.model || 'unknown';
         const stats = ensureStats(model);
@@ -573,11 +583,39 @@ export const getRunSummary = [
         stats.passRate = total ? Math.round((passed / total) * 100) : 0;
         if (row.avg_latency_ms !== null && row.avg_latency_ms !== undefined) {
           stats.avg_latency_ms = Number(row.avg_latency_ms);
+          if (total > 0) {
+            latencySum += Number(row.avg_latency_ms) * total;
+            latencyCount += total;
+          }
         }
         if (row.avg_tokens !== null && row.avg_tokens !== undefined) {
           stats.avg_tokens = Number(row.avg_tokens);
         }
+        if (row.total_tokens !== null && row.total_tokens !== undefined) {
+          stats.total_tokens = Number(row.total_tokens);
+          tokenSum += Number(row.total_tokens);
+          hasTokenData = true;
+        } else if (row.avg_tokens !== null && row.avg_tokens !== undefined && total > 0) {
+          tokenSum += Number(row.avg_tokens) * total;
+          hasTokenData = true;
+        }
+        if (row.avg_cost !== null && row.avg_cost !== undefined) {
+          stats.avg_cost = Number(row.avg_cost);
+          hasCostData = true;
+        }
+        if (row.total_cost !== null && row.total_cost !== undefined) {
+          stats.total_cost = Number(row.total_cost);
+          costSum += Number(row.total_cost);
+          hasCostData = true;
+        } else if (row.avg_cost !== null && row.avg_cost !== undefined && total > 0) {
+          costSum += Number(row.avg_cost) * total;
+          hasCostData = true;
+        }
       });
+
+      const aggregateAvgLatency = latencyCount ? Number((latencySum / latencyCount).toFixed(0)) : undefined;
+      const aggregateAvgTokens = hasTokenData && totalStats.total ? Number((tokenSum / totalStats.total).toFixed(0)) : undefined;
+      const aggregateAvgCost = hasCostData && totalStats.total ? Number((costSum / totalStats.total).toFixed(6)) : undefined;
 
       modelSeverityRows.forEach(row => {
         const model = row.model || 'unknown';
@@ -604,7 +642,12 @@ export const getRunSummary = [
           total_samples: totalStats.total,
           models_tested: Object.keys(statistics),
           created_at: runRow.created_at,
-          status: runRow.status
+          status: runRow.status,
+          avg_latency_ms: aggregateAvgLatency,
+          avg_tokens: aggregateAvgTokens,
+          total_tokens: hasTokenData ? tokenSum : undefined,
+          avg_cost: aggregateAvgCost,
+          total_cost: hasCostData ? Number(costSum.toFixed(6)) : undefined
         },
         statistics
       };
@@ -625,8 +668,11 @@ export const getRunSummary = [
           total: Number(row.total),
           passed: Number(row.passed || 0),
           passRate: row.total ? Number(((row.passed || 0) / row.total).toFixed(4)) : 0,
-          avg_latency_ms: row.avg_latency_ms ? Number(row.avg_latency_ms) : null,
-          avg_tokens: row.avg_tokens ? Number(row.avg_tokens) : null
+          avg_latency_ms: row.avg_latency_ms !== null && row.avg_latency_ms !== undefined ? Number(row.avg_latency_ms) : null,
+          avg_tokens: row.avg_tokens !== null && row.avg_tokens !== undefined ? Number(row.avg_tokens) : null,
+          total_tokens: row.total_tokens !== null && row.total_tokens !== undefined ? Number(row.total_tokens) : null,
+          avg_cost: row.avg_cost !== null && row.avg_cost !== undefined ? Number(row.avg_cost) : null,
+          total_cost: row.total_cost !== null && row.total_cost !== undefined ? Number(row.total_cost) : null
         })),
         turnHistogram: turnHistRows.map(row => ({
           bin: Number(row.bin),

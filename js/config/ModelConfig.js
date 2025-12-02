@@ -139,6 +139,16 @@ export class ModelConfig {
     }
 
     /**
+     * 获取指定ID的提供商配置
+     * @param {string} providerId
+     * @returns {Object|null}
+     */
+    getProviderConfig(providerId) {
+        if (!providerId) return this.getCurrentProvider();
+        return this.providers[providerId] || this.customProviders[providerId] || null;
+    }
+
+    /**
      * 获取当前模型信息
      */
     getCurrentModel() {
